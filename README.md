@@ -47,16 +47,39 @@ one. Re-run it to update; it is safe to run repeatedly.
 | Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
 | Running Claude Code sessions and whether each is busy | `~/.claude/sessions/*.json` |
 
-## The Keychain prompt
+## The Keychain
 
-On first run macOS asks to read the `Claude Code-credentials` Keychain item.
-That item holds the OAuth token, and the token's only destination is the
-`Authorization` header of the usage probe — nothing else from the credential
-store reaches the UI except the plan name. Choose **Always Allow** to stop the
-prompt recurring.
+The OAuth token lives in the `Claude Code-credentials` Keychain item. Its only
+destination is the `Authorization` header of the usage probe — nothing else
+from the credential store reaches the UI except the plan name.
 
-Deny it and the limits section reads "Not signed in"; token counts and session
-state keep working, because those come from local files.
+The secret is read by running `/usr/bin/security find-generic-password`, which
+looks like a detour and is not. Two gates guard that item: the trusted-app ACL,
+which the "Always Allow" prompt adds this app to and which survives, and the
+XARA partition list, which does not. This app is signed with a local identity
+carrying no Team ID, so macOS pins it in that list by CDHash — and every time
+Claude Code saves a refreshed token it does so via `security
+add-generic-password -U`, whose write rebuilds the integrity ACL from scratch:
+
+```
+SecKeychainItemModifyContent
+[integrity] no previous integrity acl exists; making a new one
+[integrity] ACL partition mismatch: client cdhash:0eb09c86… ACL ("apple-tool:")
+```
+
+The app's entry is gone, and the next poll prompts for the login password
+again — roughly every twelve hours, whatever the user clicked last time. Each
+rebuild of the app costs another prompt for the same reason.
+
+`/usr/bin/security` is the one caller that clears both gates permanently:
+Claude Code's own write puts it in the ACL, and its partition, `apple-tool:`,
+is the only one left standing after each reset. The successful read is then
+held in memory until the token nears expiry, so the Keychain is touched once
+per token rather than once per sixty-second poll.
+
+If the read fails, the limits section says why — "Not signed in", "Keychain
+locked", "Keychain access denied". Token counts and session state keep working
+either way, because those come from local files.
 
 If limits read **"Sign-in expired"**, start Claude Code. Only the CLI can mint a
 fresh token — this app can only read the one the CLI leaves behind.

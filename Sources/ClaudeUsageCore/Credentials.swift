@@ -17,9 +17,51 @@ public struct ClaudeCredentials: Equatable {
     /// credential when it runs. A machine left alone long enough therefore
     /// finds the saved token lapsed, and the fix is to start Claude Code, not
     /// anything this app can do.
-    public var isExpired: Bool {
+    public var isExpired: Bool { hasLapsed(by: Date()) }
+
+    /// Lapsed, or close enough that a probe started now could outlive it.
+    public func hasLapsed(by now: Date, margin: TimeInterval = 0) -> Bool {
         guard let expiresAt else { return false }
-        return expiresAt <= Date()
+        return expiresAt.addingTimeInterval(-margin) <= now
+    }
+}
+
+/// The last good login, held so the Keychain is read once per token rather
+/// than once per poll.
+///
+/// This is not about speed. Every read of the Keychain item is a chance to
+/// trip the password prompt — see `CredentialStore.securityToolSecret` — and
+/// the app polls every sixty seconds, so a single bad moment used to produce
+/// a dialog, then another one a minute later before the first was answered.
+final class CredentialCache {
+    private let lock = NSLock()
+    private var stored: ClaudeCredentials?
+
+    func value(now: Date,
+               reload: () -> Result<ClaudeCredentials, CredentialStore.LoadFailure>)
+        -> Result<ClaudeCredentials, CredentialStore.LoadFailure> {
+        lock.lock()
+        let held = stored
+        lock.unlock()
+        if let held, !held.hasLapsed(by: now, margin: CredentialStore.renewMargin) {
+            return .success(held)
+        }
+
+        let fresh = reload()
+        lock.lock()
+        // On failure the held copy is dropped rather than kept: we only get
+        // here because it had lapsed, and serving a lapsed token would hide
+        // the real reason the menu has no numbers.
+        stored = try? fresh.get()
+        lock.unlock()
+        return fresh
+    }
+
+    /// Forget the login, sending the next read back to the Keychain.
+    func invalidate() {
+        lock.lock()
+        stored = nil
+        lock.unlock()
     }
 }
 
@@ -49,14 +91,31 @@ public enum CredentialStore {
         }
     }
 
-    public static func load() -> ClaudeCredentials? { try? loadOrThrow() }
+    /// How early a still-valid token is replaced. A token that lapses partway
+    /// through a probe costs a request and flashes "Sign-in expired" in the
+    /// menu for one poll.
+    public static let renewMargin: TimeInterval = 120
+
+    static let cache = CredentialCache()
+
+    public static func load() -> ClaudeCredentials? { try? result().get() }
 
     /// The load, with the reason it failed preserved.
-    public static func result() -> Result<ClaudeCredentials, LoadFailure> {
+    public static func result(now: Date = Date()) -> Result<ClaudeCredentials, LoadFailure> {
+        cache.value(now: now, reload: uncachedResult)
+    }
+
+    /// The Keychain read itself, with no remembered copy in the way.
+    public static func uncachedResult() -> Result<ClaudeCredentials, LoadFailure> {
         do { return .success(try loadOrThrow()) }
         catch let failure as LoadFailure { return .failure(failure) }
         catch { return .failure(.unreadable) }
     }
+
+    /// Drop the remembered login. For when Anthropic rejects a token this app
+    /// still considers valid — the shape of a sign-out and fresh sign-in,
+    /// which leaves our copy correct by its own clock and wrong in fact.
+    public static func invalidate() { cache.invalidate() }
 
     public static func loadOrThrow() throws -> ClaudeCredentials {
         var data = fileData()
@@ -133,7 +192,78 @@ public enum CredentialStore {
         return .success(best)
     }
 
+    /// One secret, read the only way that does not re-prompt for the password
+    /// every twelve hours.
+    ///
+    /// Two gates guard this item, and "Always Allow" only makes one of them
+    /// stick. The trusted-application ACL, which the prompt adds this app to,
+    /// survives. The XARA partition list does not: because the signing
+    /// identity carries no Team ID, macOS pins this app by CDHash, and Claude
+    /// Code saves a refreshed token by running `security add-generic-password
+    /// -U`, whose write rebuilds the integrity ACL from nothing —
+    ///
+    ///     SecKeychainItemModifyContent
+    ///     [integrity] no previous integrity acl exists; making a new one
+    ///     [integrity] ACL partition mismatch: client cdhash:0eb09c86… ACL ("apple-tool:")
+    ///
+    /// — leaving a partition list of just "apple-tool:". This app's entry is
+    /// gone and the next poll prompts again, whatever the user clicked. The
+    /// CDHash pinning also means every rebuild prompts once.
+    ///
+    /// `/usr/bin/security` is the one caller that passes both gates for good:
+    /// Claude Code's own write puts it in the ACL, and "apple-tool:" is its
+    /// partition — the only one left standing after each reset. So ask it for
+    /// the secret rather than asking the Keychain from in here.
     static func secret(forAccount account: String) -> Result<Data, LoadFailure> {
+        if let viaTool = securityToolSecret(forAccount: account) { return viaTool }
+        // The tool could not be launched at all. Reading it in-process still
+        // works; it just goes back to prompting after every token refresh,
+        // and a prompt beats no credential.
+        return frameworkSecret(forAccount: account)
+    }
+
+    static let securityToolPath = "/usr/bin/security"
+
+    /// nil when the tool could not be run — distinct from it running and
+    /// saying no, which is a `LoadFailure` the menu should report.
+    static func securityToolSecret(forAccount account: String) -> Result<Data, LoadFailure>? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: securityToolPath)
+        // The secret travels on stdout, not in argv, so it stays out of `ps`.
+        task.arguments = ["find-generic-password", "-s", service, "-a", account, "-w"]
+        let out = Pipe(), err = Pipe()
+        task.standardOutput = out
+        task.standardError = err
+        do { try task.run() } catch { return nil }
+
+        // Drain before waiting: the credential runs to several kilobytes, and
+        // a child blocked writing to a full pipe would never exit.
+        let stdout = out.fileHandleForReading.readDataToEndOfFile()
+        let stderr = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        task.waitUntilExit()
+
+        guard task.terminationStatus == 0 else {
+            return .failure(failure(forSecurityExit: task.terminationStatus, stderr: stderr))
+        }
+        return .success(strippingTrailingNewline(stdout))
+    }
+
+    /// `security … -w` writes the secret and then a newline of its own.
+    static func strippingTrailingNewline(_ data: Data) -> Data {
+        data.last == 0x0a ? data.dropLast() : data
+    }
+
+    static func failure(forSecurityExit code: Int32, stderr: String) -> LoadFailure {
+        // 44 is the tool's status for errSecItemNotFound. The rest it only
+        // spells out in its message, so the message is what gets read.
+        if code == 44 { return .notFound }
+        if stderr.contains("User interaction is not allowed") { return .interactionNotAllowed }
+        if stderr.localizedCaseInsensitiveContains("canceled") { return .denied }
+        return .status(code)
+    }
+
+    /// The in-process read, kept as the fallback for `secret(forAccount:)`.
+    static func frameworkSecret(forAccount account: String) -> Result<Data, LoadFailure> {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

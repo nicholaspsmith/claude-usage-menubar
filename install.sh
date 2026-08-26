@@ -39,11 +39,11 @@ cat <<'NOTE'
 Claude Usage is now running in the menu bar.
 
 First run
-  macOS will ask for permission to read the "Claude Code-credentials" Keychain
-  item. That item holds the OAuth token this app sends to Anthropic's usage
-  endpoint to read your 5-hour and weekly allowances; choose "Always Allow" so
-  it stops asking. Deny it and the limits section reads "Not signed in" — token
-  counts and session state still work, since those come from local files.
+  The limits come from the "Claude Code-credentials" Keychain item, which holds
+  the OAuth token this app sends to Anthropic's usage endpoint. It is read
+  through /usr/bin/security, which Claude Code has already authorised, so there
+  should be no password prompt — see "The Keychain" in the README for why that
+  detour is what stops the prompt coming back every twelve hours.
 
   If the limits say "Sign-in expired", start Claude Code. Only the CLI can mint
   a fresh token; this app can only read the one it leaves behind.

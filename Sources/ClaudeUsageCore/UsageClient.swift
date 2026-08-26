@@ -54,6 +54,11 @@ public enum UsageClient {
             if !limits.isEmpty { cache.save(limits, now: now) }
             return LimitsSnapshot(limits: limits, planLabel: plan)
         case .failure(let error):
+            // A token this app still reads as valid but Anthropic rejects means
+            // the Keychain moved on without us — a sign-out and fresh sign-in
+            // looks exactly like this. Drop the remembered copy so the next
+            // poll goes back and re-reads it.
+            if case .status(401) = error { CredentialStore.invalidate() }
             return LimitsSnapshot(limits: fallback, planLabel: plan,
                                   statusText: fallback.isEmpty ? error.message : "")
         }

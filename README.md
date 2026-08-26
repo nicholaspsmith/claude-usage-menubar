@@ -11,7 +11,9 @@ proportion, because that is the icon's whole job; the weekly window is the
 slower one and lives in the menu rather than competing for the single glyph.
 
 Both allowances appear in the dropdown as labelled progress bars with their
-reset countdowns. A refresh button sits on the title row, top right.
+reset countdowns. The title row carries how long ago the numbers were fetched, and a refresh
+button on the right. Refreshing leaves the menu open and replaces the rows in
+place.
 
 ## What the menu shows
 

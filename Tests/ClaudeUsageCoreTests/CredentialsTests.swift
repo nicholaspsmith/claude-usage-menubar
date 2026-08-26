@@ -67,3 +67,33 @@ final class CredentialSelectionTests: XCTestCase {
         XCTAssertNotNil(CredentialStore.bestCredential(among: [garbage, blob(sub: "max", expiresAt: future)]))
     }
 }
+
+final class RelativeTimeTests: XCTestCase {
+
+    func testShortUnitsEscalate() {
+        XCTAssertEqual(RelativeTime.short(12), "12s")
+        XCTAssertEqual(RelativeTime.short(180), "3m")
+        XCTAssertEqual(RelativeTime.short(7_200), "2h")
+        XCTAssertEqual(RelativeTime.short(200_000), "2d")
+    }
+
+    func testAgoPhrasing() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertEqual(RelativeTime.ago(now.addingTimeInterval(-180), now: now), "updated 3m ago")
+        XCTAssertEqual(RelativeTime.ago(nil, now: now), "never updated")
+    }
+
+    // "updated 0s ago" reads like a stuck clock.
+    func testFreshReadsAsJustNow() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertEqual(RelativeTime.ago(now, now: now), "updated just now")
+        XCTAssertEqual(RelativeTime.ago(now.addingTimeInterval(-2), now: now), "updated just now")
+    }
+
+    // Sleep or an NTP correction can put the stamp in the future; it must not
+    // render a negative age.
+    func testClockGoingBackwards() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertEqual(RelativeTime.ago(now.addingTimeInterval(120), now: now), "updated just now")
+    }
+}

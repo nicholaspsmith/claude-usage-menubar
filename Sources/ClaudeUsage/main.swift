@@ -7,6 +7,8 @@ import StatusItemKit
 private struct Snapshot {
     var limits = LimitsSnapshot()
     var sessions: [ClaudeSession] = []
+    /// When this snapshot was taken, for the header's age line.
+    var updatedAt: Date?
 }
 
 final class App: NSObject, NSApplicationDelegate {
@@ -15,6 +17,11 @@ final class App: NSObject, NSApplicationDelegate {
     /// spare room, and a reveal borrows slots from apps that cooperate.
     private var yieldClient: YieldClient!
     private var latest = Snapshot()
+    /// The menu while it is on screen. A refresh no longer dismisses it, so a
+    /// finished poll has to replace the rows of the menu the user is still
+    /// looking at; NSMenu redraws when its items change under it.
+    private weak var liveMenu: NSMenu?
+    private weak var liveHeader: HeaderView?
 
     /// The window that decides the icon. The five-hour session limit is the one
     /// that actually stops work, so it is what the meter shows; the weekly
@@ -45,6 +52,18 @@ final class App: NSObject, NSApplicationDelegate {
             onBuildMenu: { [weak self] menu in self?.buildMenu(menu) },
             autosaveName: "ClaudeUsage"
         )
+        // NSMenu has no "is open" flag worth trusting, so track the tracking.
+        NotificationCenter.default.addObserver(
+            forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            // Fires for every menu, submenus included. Clearing on the Icon
+            // submenu closing would silently kill live updates for the rest of
+            // the session, so only the root menu counts.
+            guard let self, (note.object as? NSMenu) === self.liveMenu else { return }
+            self.liveMenu = nil
+            self.liveHeader = nil
+        }
+
         yieldClient = YieldClient(item: controller)
         yieldClient.start()
         controller.start()
@@ -84,11 +103,20 @@ final class App: NSObject, NSApplicationDelegate {
                     + " | limits: \(snapshot.limits.limits.count)"
                     + " | status: \(snapshot.limits.statusText)")
             snapshot.sessions = SessionRegistry.load()
+            snapshot.updatedAt = Date()
 
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.latest = snapshot
                 self.render(snapshot)
+                // Rebuild under the user's cursor if the menu is still up.
+                // Rebuilding re-seeds liveMenu/liveHeader, so the spinner state
+                // is cleared on the view that replaces the spinning one.
+                if let menu = self.liveMenu {
+                    menu.removeAllItems()
+                    self.buildMenu(menu)
+                }
+                self.liveHeader?.setRefreshing(false)
                 self.pollInFlight = false
                 if self.pollPending { self.pollPending = false; self.poll() }
             }
@@ -125,8 +153,14 @@ final class App: NSObject, NSApplicationDelegate {
 
         let plan = snapshot.limits.planLabel.isEmpty ? "Claude" : "Claude · " + snapshot.limits.planLabel
         let headerItem = NSMenuItem()
-        headerItem.view = HeaderView(title: plan) { [weak self] in self?.poll(force: true) }
+        let headerView = HeaderView(title: plan,
+                                    age: RelativeTime.ago(snapshot.updatedAt)) { [weak self] in
+            self?.poll(force: true)
+        }
+        headerItem.view = headerView
         menu.addItem(headerItem)
+        liveMenu = menu
+        liveHeader = headerView
 
         if !snapshot.limits.statusText.isEmpty {
             menu.addItem(disabled(snapshot.limits.statusText))

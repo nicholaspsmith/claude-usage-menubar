@@ -90,15 +90,20 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     private func render(_ snapshot: Snapshot) {
-        guard let session = snapshot.limits.limits.first else {
-            // No usable number is not the same as zero used. A dot says
-            // "nothing to report" without implying a full allowance.
-            controller.setIcon(MeterIcon.dot(color: .secondaryLabelColor))
-            return
+        // With no usable number, draw the CHOSEN meter empty and greyed rather
+        // than substituting a different shape. Swapping in a dot made the
+        // style picker look broken — every choice rendered identically —
+        // and an unfilled meter already reads as "nothing to report" without
+        // implying a full allowance.
+        let session = snapshot.limits.limits.first
+        let fraction = CGFloat(session?.fraction ?? 0)
+        let color: NSColor
+        if let session {
+            let pct = Int((session.fraction * 100).rounded())
+            color = Severity.level(pct: pct, warnPct: Self.warnPct).color
+        } else {
+            color = .secondaryLabelColor
         }
-        let pct = Int((session.fraction * 100).rounded())
-        let color = Severity.level(pct: pct, warnPct: Self.warnPct).color
-        let fraction = CGFloat(session.fraction)
         switch meterStyle {
         case .arc:   controller.setIcon(MeterIcon.arc(fraction: fraction, color: color))
         case .gauge: controller.setIcon(MeterIcon.gauge(fraction: fraction, color: color))

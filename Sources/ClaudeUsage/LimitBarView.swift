@@ -18,8 +18,7 @@ final class LimitBarView: NSView {
 
     init(limit: UsageLimit, warnPct: Int, now: Date = Date()) {
         self.fraction = CGFloat(max(0, min(1, limit.fraction)))
-        let pct = Int((limit.fraction * 100).rounded())
-        self.color = Severity.level(pct: pct, warnPct: warnPct).color
+        self.color = UsageColor.fill(fraction: limit.fraction, warnPct: warnPct)
 
         let labelFont = NSFont.systemFont(ofSize: NSFont.systemFontSize - 1)
         let detailFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)

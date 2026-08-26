@@ -6,7 +6,6 @@ import StatusItemKit
 /// consistent moment rather than a mix of two polls.
 private struct Snapshot {
     var limits = LimitsSnapshot()
-    var daily: [DailyUsage] = []
     var sessions: [ClaudeSession] = []
 }
 
@@ -22,24 +21,12 @@ final class App: NSObject, NSApplicationDelegate {
     /// figure lives in the menu.
     private static let warnPct = 80
 
-    /// Estimated cost is off by default.
-    ///
-    /// On a subscription without overage billing enabled, the dollar figure is
-    /// money that cannot be charged — the tokens are covered by the flat fee,
-    /// and going over the limit stops work rather than billing for it. Showing
-    /// it by default invites reading a number that will never appear on a bill.
-    /// It stays available for anyone on API billing, or as a sense of scale.
     /// Which meter shape draws the icon. Always fed the session fraction —
     /// the weekly window is the slower, less urgent one, so it lives in the
     /// menu rather than competing for the single glyph.
     private var meterStyle: MeterStyle {
         get { MeterStyle.from(UserDefaults.standard.string(forKey: MeterStyle.defaultsKey)) }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: MeterStyle.defaultsKey) }
-    }
-
-    private var showsCost: Bool {
-        get { UserDefaults.standard.bool(forKey: "ShowEstimatedCost") }
-        set { UserDefaults.standard.set(newValue, forKey: "ShowEstimatedCost") }
     }
 
     // Polling does network I/O and walks the transcript tree, so it runs off
@@ -96,7 +83,6 @@ final class App: NSObject, NSApplicationDelegate {
             App.log("credential: " + (credentials.failureMessage ?? "ok")
                     + " | limits: \(snapshot.limits.limits.count)"
                     + " | status: \(snapshot.limits.statusText)")
-            snapshot.daily = TranscriptStats.scan()
             snapshot.sessions = SessionRegistry.load()
 
             DispatchQueue.main.async {
@@ -153,29 +139,6 @@ final class App: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(.separator())
-        menu.addItem(header("Tokens"))
-        let recent = snapshot.daily.suffix(7)
-        if recent.isEmpty {
-            menu.addItem(disabled("No recorded usage this week"))
-        } else {
-            for day in recent {
-                var row = "\(day.day)   \(compact(day.total.total))"
-                if showsCost {
-                    let (dollars, complete) = day.cost()
-                    row += "   " + money(dollars) + (complete ? "" : "+")
-                }
-                menu.addItem(disabled(row))
-            }
-            if let today = recent.last {
-                menu.addItem(.separator())
-                menu.addItem(header("Today by model"))
-                for (model, usage) in today.byModel.sorted(by: { $0.value.total > $1.value.total }) {
-                    menu.addItem(disabled("\(short(model))   \(compact(usage.total))"))
-                }
-            }
-        }
-
-        menu.addItem(.separator())
         let busy = snapshot.sessions.filter(\.isBusy).count
         menu.addItem(header("Sessions   \(snapshot.sessions.count) running, \(busy) busy"))
         for session in snapshot.sessions.prefix(12) {
@@ -204,10 +167,6 @@ final class App: NSObject, NSApplicationDelegate {
         iconItem.submenu = iconMenu
         menu.addItem(iconItem)
 
-        let cost = action("Show Estimated Cost", #selector(toggleCost))
-        cost.state = showsCost ? .on : .off
-        cost.toolTip = "API list price for these tokens. On a subscription without overage billing this is not a bill — it is only a sense of scale."
-        menu.addItem(cost)
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
         menu.addItem(login)
@@ -240,20 +199,8 @@ final class App: NSObject, NSApplicationDelegate {
 
     // MARK: - Formatting
 
-    private func compact(_ tokens: Int) -> String {
-        if tokens >= 1_000_000 { return String(format: "%.1fM", Double(tokens) / 1_000_000) }
-        if tokens >= 1_000 { return String(format: "%.0fK", Double(tokens) / 1_000) }
-        return "\(tokens)"
-    }
 
-    private func money(_ dollars: Double) -> String {
-        dollars >= 100 ? String(format: "$%.0f", dollars) : String(format: "$%.2f", dollars)
-    }
 
-    /// "claude-opus-5" reads better as "opus-5" in a narrow menu.
-    private func short(_ model: String) -> String {
-        model.hasPrefix("claude-") ? String(model.dropFirst("claude-".count)) : model
-    }
 
     // MARK: - Actions
 
@@ -276,8 +223,6 @@ final class App: NSObject, NSApplicationDelegate {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in self?.poll(force: true) }
     }
-    @objc private func toggleCost() { showsCost.toggle() }
-
     @objc private func pickStyle(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }
         meterStyle = MeterStyle.from(raw)

@@ -133,8 +133,7 @@ final class App: NSObject, NSApplicationDelegate {
         let fraction = CGFloat(session?.fraction ?? 0)
         let color: NSColor
         if let session {
-            let pct = Int((session.fraction * 100).rounded())
-            color = Severity.level(pct: pct, warnPct: Self.warnPct).color
+            color = UsageColor.fill(fraction: session.fraction, warnPct: Self.warnPct)
         } else {
             color = .secondaryLabelColor
         }

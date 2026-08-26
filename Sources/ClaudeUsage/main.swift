@@ -124,7 +124,9 @@ final class App: NSObject, NSApplicationDelegate {
         let snapshot = latest
 
         let plan = snapshot.limits.planLabel.isEmpty ? "Claude" : "Claude · " + snapshot.limits.planLabel
-        menu.addItem(header(plan))
+        let headerItem = NSMenuItem()
+        headerItem.view = HeaderView(title: plan) { [weak self] in self?.poll(force: true) }
+        menu.addItem(headerItem)
 
         if !snapshot.limits.statusText.isEmpty {
             menu.addItem(disabled(snapshot.limits.statusText))
@@ -146,7 +148,6 @@ final class App: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(.separator())
-        menu.addItem(action("Refresh Now", #selector(refresh)))
         // Re-auth is offered whenever the credential is unusable. Only the CLI
         // can mint a token, and its login is an interactive browser flow, so
         // this hands off to a Terminal window rather than pretending the menu
@@ -204,7 +205,6 @@ final class App: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    @objc private func refresh() { poll(force: true) }
     @objc private func toggleLogin() { LoginItem.toggle() }
 
     @objc private func signIn() {

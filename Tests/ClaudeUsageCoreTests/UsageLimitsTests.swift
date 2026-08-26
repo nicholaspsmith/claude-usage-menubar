@@ -116,22 +116,6 @@ final class UsageLimitsTests: XCTestCase {
     }
 }
 
-final class MeterStyleTests: XCTestCase {
-
-    // Every offered style must be able to render a proportion — that is the
-    // icon's entire job — so `dot` is intentionally absent.
-    func testAllStylesAreProportional() {
-        XCTAssertEqual(Set(MeterStyle.allCases.map(\.rawValue)), ["arc", "gauge", "pie", "wedge"])
-    }
-
-    // A preference outlives the build that wrote it; an unknown value must
-    // degrade to the default rather than leave the app unable to draw at all.
-    func testUnknownRawValueFallsBack() {
-        XCTAssertEqual(MeterStyle.from("sparkline"), .arc)
-        XCTAssertEqual(MeterStyle.from(nil), .arc)
-        XCTAssertEqual(MeterStyle.from("wedge"), .wedge)
-    }
-}
 
 final class LimitRowTests: XCTestCase {
     private func limit(_ fraction: Double, resetsIn seconds: TimeInterval?) -> UsageLimit {

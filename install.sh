@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Build Claude Usage.app and symlink it into ~/Applications (rebuilds
+# propagate; SMAppService accepts a symlink there for Start-at-Login).
+set -euo pipefail
+
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="Claude Usage.app"
+
+"$SRC_DIR/scripts/build-app.sh"
+
+mkdir -p "$HOME/Applications"
+ln -sfn "$SRC_DIR/build/$APP_NAME" "$HOME/Applications/$APP_NAME"
+echo "Linked $HOME/Applications/$APP_NAME -> $SRC_DIR/build/$APP_NAME"
+
+# Register Start at Login. Without this the app only runs until the next reboot,
+# and a menu-bar app that quietly fails to come back is easy to miss for weeks.
+# SMAppService can only register the calling process's own bundle, so this has
+# to run the installed binary rather than call launchctl.
+if "$HOME/Applications/$APP_NAME/Contents/MacOS/ClaudeUsage" --login on >/dev/null 2>&1; then
+    echo "Start at Login: on"
+else
+    echo "Start at Login: turn it on from the menu" >&2
+fi
+
+open "$HOME/Applications/$APP_NAME"
+
+cat <<'NOTE'
+
+Claude Usage is now running in the menu bar.
+
+First run
+  macOS will ask for permission to read the "Claude Code-credentials" Keychain
+  item. That item holds the OAuth token this app sends to Anthropic's usage
+  endpoint to read your 5-hour and weekly allowances; choose "Always Allow" so
+  it stops asking. Deny it and the limits section reads "Not signed in" — token
+  counts and session state still work, since those come from local files.
+
+  If the limits say "Sign-in expired", start Claude Code. Only the CLI can mint
+  a fresh token; this app can only read the one it leaves behind.
+
+Recommended, once: ../StatusItemKit/scripts/setup-signing.sh
+NOTE

@@ -22,6 +22,18 @@ final class App: NSObject, NSApplicationDelegate {
     /// figure lives in the menu.
     private static let warnPct = 80
 
+    /// Estimated cost is off by default.
+    ///
+    /// On a subscription without overage billing enabled, the dollar figure is
+    /// money that cannot be charged — the tokens are covered by the flat fee,
+    /// and going over the limit stops work rather than billing for it. Showing
+    /// it by default invites reading a number that will never appear on a bill.
+    /// It stays available for anyone on API billing, or as a sense of scale.
+    private var showsCost: Bool {
+        get { UserDefaults.standard.bool(forKey: "ShowEstimatedCost") }
+        set { UserDefaults.standard.set(newValue, forKey: "ShowEstimatedCost") }
+    }
+
     // Polling does network I/O and walks the transcript tree, so it runs off
     // the main thread. These are main-thread only: a refresh asked for while
     // one is in flight is coalesced into a single follow-up rather than
@@ -107,9 +119,12 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(disabled("No recorded usage this week"))
         } else {
             for day in recent {
-                let (dollars, complete) = day.cost()
-                let money = complete ? money(dollars) : money(dollars) + "+"
-                menu.addItem(disabled("\(day.day)   \(compact(day.total.total))   \(money)"))
+                var row = "\(day.day)   \(compact(day.total.total))"
+                if showsCost {
+                    let (dollars, complete) = day.cost()
+                    row += "   " + money(dollars) + (complete ? "" : "+")
+                }
+                menu.addItem(disabled(row))
             }
             if let today = recent.last {
                 menu.addItem(.separator())
@@ -129,6 +144,10 @@ final class App: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         menu.addItem(action("Refresh Now", #selector(refresh)))
+        let cost = action("Show Estimated Cost", #selector(toggleCost))
+        cost.state = showsCost ? .on : .off
+        cost.toolTip = "API list price for these tokens. On a subscription without overage billing this is not a bill — it is only a sense of scale."
+        menu.addItem(cost)
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
         menu.addItem(login)
@@ -189,6 +208,7 @@ final class App: NSObject, NSApplicationDelegate {
 
     @objc private func refresh() { poll(force: true) }
     @objc private func toggleLogin() { LoginItem.toggle() }
+    @objc private func toggleCost() { showsCost.toggle() }
     @objc private func quit() { NSApp.terminate(nil) }
 }
 

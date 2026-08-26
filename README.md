@@ -12,7 +12,7 @@ actually stops your work — green below 50%, orange from 50%, red at 80% and up
 | Section | Source |
 |---|---|
 | Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
-| Tokens and estimated cost per day for the last week | `~/.claude/projects/**/*.jsonl` transcripts |
+| Tokens per day for the last week (estimated cost optional) | `~/.claude/projects/**/*.jsonl` transcripts |
 | Today's tokens broken down by model | the same transcripts |
 | Running Claude Code sessions and whether each is busy | `~/.claude/sessions/*.json` |
 
@@ -45,9 +45,11 @@ fresh token — this app can only read the one the CLI leaves behind.
 
 ## Notes on the numbers
 
-- **Cost is an estimate, and it is the API list price** — what these tokens
-  *would* have cost on the API. On a Pro/Max subscription they cost nothing
-  extra, so read it as a sense of scale, not a bill.
+- **Estimated cost is off by default** (menu ▸ Show Estimated Cost). It is the
+  API list price — what these tokens *would* have cost on the API. On a
+  subscription without overage billing it is money that cannot be charged:
+  the tokens are covered by the flat fee, and hitting the limit stops work
+  rather than billing for it. Useful as a sense of scale, misleading as a bill.
 - Cache traffic is priced separately: reads at 0.1x the base input rate, writes
   at 1.25x (the 5-minute TTL; transcripts don't record which TTL was used).
 - A model missing from the rate table is left out of the cost rather than priced

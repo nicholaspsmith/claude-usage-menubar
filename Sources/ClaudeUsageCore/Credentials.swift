@@ -80,14 +80,64 @@ public enum CredentialStore {
         )
     }
 
-    /// Matched on service alone. The account name is NOT stable across
-    /// machines — Claude Code stores it as "root" on one Mac here and as the
-    /// login name on another — so constraining on it silently matches nothing
-    /// and looks exactly like being signed out.
+    /// Every item under this service, newest usable login first.
+    ///
+    /// Two things make this more than a one-shot lookup. The account name is
+    /// not stable across machines — Claude Code stores it as "root" on one Mac
+    /// here and as the login name on another — so the account cannot be part
+    /// of the query. And a machine can hold SEVERAL items under this service:
+    /// an old sign-in leaves its item behind when a new one is written, so
+    /// this Mac carries an expired Pro token beside a live Max one. Asking for
+    /// a single match returns an arbitrary one of them, which is how the app
+    /// came to report an expired Pro plan for a signed-in Max account.
+    ///
+    /// So: take them all, and prefer the one that is actually still valid,
+    /// falling back to the furthest-dated if none are.
     static func keychainData() -> Result<Data, LoadFailure> {
+        // Two steps on purpose. macOS rejects kSecMatchLimitAll combined with
+        // kSecReturnData for generic passwords — it returns errSecParam (-50)
+        // before any ACL is consulted, which reads as a mysterious failure
+        // rather than a coding error. So enumerate attributes to learn the
+        // account names, then fetch each secret individually.
+        let enumerateQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+        ]
+        var found: CFTypeRef?
+        let status = SecItemCopyMatching(enumerateQuery as CFDictionary, &found)
+        switch status {
+        case errSecSuccess: break
+        case errSecItemNotFound: return .failure(.notFound)
+        case errSecInteractionNotAllowed: return .failure(.interactionNotAllowed)
+        case errSecAuthFailed, errSecUserCanceled: return .failure(.denied)
+        default: return .failure(.status(status))
+        }
+
+        let attributes = (found as? [[String: Any]]) ?? []
+        let accounts = attributes.compactMap { $0[kSecAttrAccount as String] as? String }
+        guard !accounts.isEmpty else { return .failure(.notFound) }
+
+        var blobs: [Data] = []
+        var lastFailure: LoadFailure?
+        for account in accounts {
+            switch secret(forAccount: account) {
+            case .success(let data): blobs.append(data)
+            case .failure(let failure): lastFailure = failure
+            }
+        }
+        guard let best = bestCredential(among: blobs) else {
+            return .failure(lastFailure ?? .unreadable)
+        }
+        return .success(best)
+    }
+
+    static func secret(forAccount account: String) -> Result<Data, LoadFailure> {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
@@ -102,6 +152,22 @@ public enum CredentialStore {
         case errSecAuthFailed, errSecUserCanceled: return .failure(.denied)
         default: return .failure(.status(status))
         }
+    }
+
+    /// Pick the live login out of however many the Keychain is holding.
+    static func bestCredential(among blobs: [Data]) -> Data? {
+        let now = Date()
+        let dated = blobs.compactMap { blob -> (Data, Date)? in
+            guard let root = (try? JSONSerialization.jsonObject(with: blob)) as? [String: Any],
+                  let oauth = root["claudeAiOauth"] as? [String: Any],
+                  let token = oauth["accessToken"] as? String, !token.isEmpty
+            else { return nil }
+            return (blob, expiry(oauth["expiresAt"]) ?? .distantPast)
+        }
+        // A still-valid login always beats a lapsed one, however recent the
+        // lapsed one is; among equals, the later expiry wins.
+        let unexpired = dated.filter { $0.1 > now }
+        return (unexpired.isEmpty ? dated : unexpired).max { $0.1 < $1.1 }?.0
     }
 
     /// The Linux/CI location, kept so the parsing path is exercisable off a Mac.

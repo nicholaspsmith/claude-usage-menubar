@@ -63,6 +63,22 @@ final class App: NSObject, NSApplicationDelegate {
         controller.start()
     }
 
+    /// A one-line breadcrumb per poll. A menu-bar app has nowhere to print a
+    /// diagnostic, and "no numbers" has several very different causes.
+    static func log(_ message: String) {
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/ClaudeUsage.log")
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        guard let data = "\(stamp)  \(message)\n".data(using: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: path) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+        } else {
+            try? data.write(to: path)
+        }
+    }
+
     // MARK: - Poll
 
     private func poll(force: Bool = false) {
@@ -75,7 +91,11 @@ final class App: NSObject, NSApplicationDelegate {
         pollQueue.async { [weak self] in
             guard self != nil else { return }
             var snapshot = Snapshot()
-            snapshot.limits = UsageClient.snapshot(credentials: CredentialStore.result(), force: forcing)
+            let credentials = CredentialStore.result()
+            snapshot.limits = UsageClient.snapshot(credentials: credentials, force: forcing)
+            App.log("credential: " + (credentials.failureMessage ?? "ok")
+                    + " | limits: \(snapshot.limits.limits.count)"
+                    + " | status: \(snapshot.limits.statusText)")
             snapshot.daily = TranscriptStats.scan()
             snapshot.sessions = SessionRegistry.load()
 
@@ -164,6 +184,14 @@ final class App: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         menu.addItem(action("Refresh Now", #selector(refresh)))
+        // Re-auth is offered whenever the credential is unusable. Only the CLI
+        // can mint a token, and its login is an interactive browser flow, so
+        // this hands off to a Terminal window rather than pretending the menu
+        // bar can complete it.
+        if !snapshot.limits.statusText.isEmpty {
+            menu.addItem(action("Sign In to Claude Code…", #selector(signIn)))
+        }
+
         let iconItem = NSMenuItem(title: "Icon", action: nil, keyEquivalent: "")
         let iconMenu = NSMenu()
         for style in MeterStyle.allCases {
@@ -231,6 +259,23 @@ final class App: NSObject, NSApplicationDelegate {
 
     @objc private func refresh() { poll(force: true) }
     @objc private func toggleLogin() { LoginItem.toggle() }
+
+    @objc private func signIn() {
+        // `claude auth login` opens a browser and waits, so it needs a real
+        // terminal to live in. Refresh shortly after so a completed sign-in
+        // shows up without waiting for the regular poll.
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "claude auth login"
+        end tell
+        """
+        if let osa = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            osa.executeAndReturnError(&error)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in self?.poll(force: true) }
+    }
     @objc private func toggleCost() { showsCost.toggle() }
 
     @objc private func pickStyle(_ sender: NSMenuItem) {

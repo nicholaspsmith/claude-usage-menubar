@@ -28,14 +28,49 @@ public enum CredentialStore {
     /// owned by Claude Code, so the first read from a different binary raises
     /// the system's Keychain prompt; "Always Allow" makes it a one-time cost.
     public static let service = "Claude Code-credentials"
-    public static let account = "root"
 
-    public static func load() -> ClaudeCredentials? {
-        guard let data = keychainData() ?? fileData() else { return nil }
+    /// Why the credential could not be read, so the menu can say something
+    /// better than "Not signed in" when the real problem is a denied prompt.
+    public enum LoadFailure: Equatable {
+        case notFound
+        case interactionNotAllowed
+        case denied
+        case unreadable
+        case status(Int32)
+
+        public var message: String {
+            switch self {
+            case .notFound: return "Claude Code not signed in on this Mac"
+            case .interactionNotAllowed: return "Keychain locked — unlock it and refresh"
+            case .denied: return "Keychain access denied — allow it in Keychain Access"
+            case .unreadable: return "Credential unreadable"
+            case .status(let code): return "Keychain error \(code)"
+            }
+        }
+    }
+
+    public static func load() -> ClaudeCredentials? { try? loadOrThrow() }
+
+    /// The load, with the reason it failed preserved.
+    public static func result() -> Result<ClaudeCredentials, LoadFailure> {
+        do { return .success(try loadOrThrow()) }
+        catch let failure as LoadFailure { return .failure(failure) }
+        catch { return .failure(.unreadable) }
+    }
+
+    public static func loadOrThrow() throws -> ClaudeCredentials {
+        var data = fileData()
+        if data == nil {
+            switch keychainData() {
+            case .success(let found): data = found
+            case .failure(let failure): throw failure
+            }
+        }
+        guard let data else { throw LoadFailure.notFound }
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let oauth = root["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String, !token.isEmpty
-        else { return nil }
+        else { throw LoadFailure.unreadable }
 
         return ClaudeCredentials(
             accessToken: token,
@@ -45,17 +80,28 @@ public enum CredentialStore {
         )
     }
 
-    static func keychainData() -> Data? {
+    /// Matched on service alone. The account name is NOT stable across
+    /// machines — Claude Code stores it as "root" on one Mac here and as the
+    /// login name on another — so constraining on it silently matches nothing
+    /// and looks exactly like being signed out.
+    static func keychainData() -> Result<Data, LoadFailure> {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
-        return item as? Data
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        switch status {
+        case errSecSuccess:
+            guard let data = item as? Data else { return .failure(.unreadable) }
+            return .success(data)
+        case errSecItemNotFound: return .failure(.notFound)
+        case errSecInteractionNotAllowed: return .failure(.interactionNotAllowed)
+        case errSecAuthFailed, errSecUserCanceled: return .failure(.denied)
+        default: return .failure(.status(status))
+        }
     }
 
     /// The Linux/CI location, kept so the parsing path is exercisable off a Mac.
@@ -82,5 +128,15 @@ public enum CredentialStore {
         }
         guard !subscription.isEmpty else { return "" }
         return subscription.prefix(1).uppercased() + subscription.dropFirst().lowercased()
+    }
+}
+
+extension CredentialStore.LoadFailure: Error {}
+
+extension Result where Failure == CredentialStore.LoadFailure {
+    /// The human-facing reason, or nil when this is a success.
+    public var failureMessage: String? {
+        if case .failure(let failure) = self { return failure.message }
+        return nil
     }
 }

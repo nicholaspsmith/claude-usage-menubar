@@ -4,8 +4,14 @@ A macOS menu-bar app for Claude Code usage: how much of your plan you have left,
 what you have spent, and which agents are running. Built on
 [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit).
 
-The icon is an arc meter tracking the **5-hour session limit** — the one that
-actually stops your work — green below 50%, orange from 50%, red at 80% and up.
+The icon tracks the **5-hour session limit** — the one that actually stops your
+work — green below 50%, orange from 50%, red at 80% and up. Pick its shape from
+menu ▸ Icon: **Arc**, **Gauge**, **Pie**, or **Wedge**. Every choice shows a
+proportion, because that is the icon's whole job; the weekly window is the
+slower one and lives in the menu rather than competing for the single glyph.
+
+Both allowances appear in the dropdown as labelled progress bars with their
+reset countdowns.
 
 ## What the menu shows
 

@@ -25,17 +25,21 @@ public enum UsageClient {
     /// The fallback is deliberately filtered by `isOpen`: a cached limit whose
     /// window has since reset describes an allowance that has already refilled,
     /// and showing it would be worse than showing nothing.
-    public static func snapshot(credentials: ClaudeCredentials?,
+    public static func snapshot(credentials: Result<ClaudeCredentials, CredentialStore.LoadFailure>,
                                 cache: ProbeCache = ProbeCache(),
                                 force: Bool = false,
                                 now: Date = Date(),
                                 fetch: (String) -> Result<[String: Any], ProbeError> = UsageClient.probe) -> LimitsSnapshot {
-        let plan = credentials?.planLabel ?? ""
         let fallback = cache.load().filter { $0.isOpen(now: now) }
 
-        guard let credentials else {
-            return LimitsSnapshot(limits: fallback, planLabel: plan, statusText: "Not signed in")
+        guard case .success(let credentials) = credentials else {
+            // Say which failure it was. "Not signed in" covering a denied
+            // Keychain prompt sent us chasing a sign-in that was never the
+            // problem.
+            return LimitsSnapshot(limits: fallback, planLabel: "",
+                                  statusText: credentials.failureMessage ?? "Not signed in")
         }
+        let plan = credentials.planLabel
         if credentials.isExpired {
             return LimitsSnapshot(limits: fallback, planLabel: plan,
                                   statusText: "Sign-in expired — start Claude Code to refresh")

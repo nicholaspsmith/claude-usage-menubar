@@ -29,6 +29,14 @@ final class App: NSObject, NSApplicationDelegate {
     /// and going over the limit stops work rather than billing for it. Showing
     /// it by default invites reading a number that will never appear on a bill.
     /// It stays available for anyone on API billing, or as a sense of scale.
+    /// Which meter shape draws the icon. Always fed the session fraction —
+    /// the weekly window is the slower, less urgent one, so it lives in the
+    /// menu rather than competing for the single glyph.
+    private var meterStyle: MeterStyle {
+        get { MeterStyle.from(UserDefaults.standard.string(forKey: MeterStyle.defaultsKey)) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: MeterStyle.defaultsKey) }
+    }
+
     private var showsCost: Bool {
         get { UserDefaults.standard.bool(forKey: "ShowEstimatedCost") }
         set { UserDefaults.standard.set(newValue, forKey: "ShowEstimatedCost") }
@@ -67,7 +75,7 @@ final class App: NSObject, NSApplicationDelegate {
         pollQueue.async { [weak self] in
             guard self != nil else { return }
             var snapshot = Snapshot()
-            snapshot.limits = UsageClient.snapshot(credentials: CredentialStore.load(), force: forcing)
+            snapshot.limits = UsageClient.snapshot(credentials: CredentialStore.result(), force: forcing)
             snapshot.daily = TranscriptStats.scan()
             snapshot.sessions = SessionRegistry.load()
 
@@ -89,8 +97,14 @@ final class App: NSObject, NSApplicationDelegate {
             return
         }
         let pct = Int((session.fraction * 100).rounded())
-        let severity = Severity.level(pct: pct, warnPct: Self.warnPct)
-        controller.setIcon(MeterIcon.arc(fraction: session.fraction, color: severity.color))
+        let color = Severity.level(pct: pct, warnPct: Self.warnPct).color
+        let fraction = CGFloat(session.fraction)
+        switch meterStyle {
+        case .arc:   controller.setIcon(MeterIcon.arc(fraction: fraction, color: color))
+        case .gauge: controller.setIcon(MeterIcon.gauge(fraction: fraction, color: color))
+        case .pie:   controller.setIcon(MeterIcon.pie(fraction: fraction, color: color))
+        case .wedge: controller.setIcon(MeterIcon.wedge(fraction: fraction, color: color))
+        }
     }
 
     // MARK: - Menu
@@ -108,8 +122,9 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(disabled("No limit data"))
         }
         for limit in snapshot.limits.limits {
-            let pct = Int((limit.fraction * 100).rounded())
-            menu.addItem(disabled("\(limit.label)   \(pct)%\(resetSuffix(limit))"))
+            let item = NSMenuItem()
+            item.view = LimitBarView(limit: limit, warnPct: Self.warnPct)
+            menu.addItem(item)
         }
 
         menu.addItem(.separator())
@@ -144,6 +159,18 @@ final class App: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         menu.addItem(action("Refresh Now", #selector(refresh)))
+        let iconItem = NSMenuItem(title: "Icon", action: nil, keyEquivalent: "")
+        let iconMenu = NSMenu()
+        for style in MeterStyle.allCases {
+            let choice = NSMenuItem(title: style.title, action: #selector(pickStyle(_:)), keyEquivalent: "")
+            choice.target = self
+            choice.representedObject = style.rawValue
+            choice.state = style == meterStyle ? .on : .off
+            iconMenu.addItem(choice)
+        }
+        iconItem.submenu = iconMenu
+        menu.addItem(iconItem)
+
         let cost = action("Show Estimated Cost", #selector(toggleCost))
         cost.state = showsCost ? .on : .off
         cost.toolTip = "API list price for these tokens. On a subscription without overage billing this is not a bill — it is only a sense of scale."
@@ -180,15 +207,6 @@ final class App: NSObject, NSApplicationDelegate {
 
     // MARK: - Formatting
 
-    private func resetSuffix(_ limit: UsageLimit) -> String {
-        guard let resets = limit.resetsAt else { return "" }
-        let remaining = resets.timeIntervalSinceNow
-        guard remaining > 0 else { return "" }
-        let hours = Int(remaining) / 3600
-        let minutes = (Int(remaining) % 3600) / 60
-        return hours > 0 ? "   resets in \(hours)h \(minutes)m" : "   resets in \(minutes)m"
-    }
-
     private func compact(_ tokens: Int) -> String {
         if tokens >= 1_000_000 { return String(format: "%.1fM", Double(tokens) / 1_000_000) }
         if tokens >= 1_000 { return String(format: "%.0fK", Double(tokens) / 1_000) }
@@ -209,6 +227,14 @@ final class App: NSObject, NSApplicationDelegate {
     @objc private func refresh() { poll(force: true) }
     @objc private func toggleLogin() { LoginItem.toggle() }
     @objc private func toggleCost() { showsCost.toggle() }
+
+    @objc private func pickStyle(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        meterStyle = MeterStyle.from(raw)
+        // Repaint from the snapshot in hand rather than waiting up to a minute
+        // for the next poll to make the choice visible.
+        render(latest)
+    }
     @objc private func quit() { NSApp.terminate(nil) }
 }
 

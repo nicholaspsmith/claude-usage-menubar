@@ -22,6 +22,16 @@ else
     echo "Start at Login: turn it on from the menu" >&2
 fi
 
+# `open` on an already-running app just activates it, so a reinstall would
+# leave the previous build running and the new one never launched — the
+# symptom being an install that reports success and changes nothing.
+if pkill -f "$APP_NAME/Contents/MacOS/ClaudeUsage" 2>/dev/null; then
+    echo "Stopped the running instance"
+    # Give launchd a moment to reap it before the replacement claims the
+    # status item, otherwise both briefly sit in the bar.
+    sleep 1
+fi
+
 open "$HOME/Applications/$APP_NAME"
 
 cat <<'NOTE'

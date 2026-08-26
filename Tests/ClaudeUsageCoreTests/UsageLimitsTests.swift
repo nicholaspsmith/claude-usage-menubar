@@ -115,3 +115,45 @@ final class UsageLimitsTests: XCTestCase {
         XCTAssertTrue(UsageLimit(label: "x", fraction: 0.5, resetsAt: nil).isOpen())
     }
 }
+
+final class MeterStyleTests: XCTestCase {
+
+    // Every offered style must be able to render a proportion — that is the
+    // icon's entire job — so `dot` is intentionally absent.
+    func testAllStylesAreProportional() {
+        XCTAssertEqual(Set(MeterStyle.allCases.map(\.rawValue)), ["arc", "gauge", "pie", "wedge"])
+    }
+
+    // A preference outlives the build that wrote it; an unknown value must
+    // degrade to the default rather than leave the app unable to draw at all.
+    func testUnknownRawValueFallsBack() {
+        XCTAssertEqual(MeterStyle.from("sparkline"), .arc)
+        XCTAssertEqual(MeterStyle.from(nil), .arc)
+        XCTAssertEqual(MeterStyle.from("wedge"), .wedge)
+    }
+}
+
+final class LimitRowTests: XCTestCase {
+    private func limit(_ fraction: Double, resetsIn seconds: TimeInterval?) -> UsageLimit {
+        UsageLimit(label: "x", fraction: fraction,
+                   resetsAt: seconds.map { Date(timeIntervalSince1970: 1_000_000 + $0) })
+    }
+    private let now = Date(timeIntervalSince1970: 1_000_000)
+
+    func testPercentRounds() {
+        XCTAssertEqual(LimitRow.percentText(limit(0.374, resetsIn: nil)), "37%")
+        XCTAssertEqual(LimitRow.percentText(limit(1.0, resetsIn: nil)), "100%")
+    }
+
+    func testResetFormatsHoursMinutesAndDays() {
+        XCTAssertEqual(LimitRow.resetText(limit(0.5, resetsIn: 8_040), now: now), "resets in 2h 14m")
+        XCTAssertEqual(LimitRow.resetText(limit(0.5, resetsIn: 900), now: now), "resets in 15m")
+        XCTAssertEqual(LimitRow.resetText(limit(0.5, resetsIn: 200_000), now: now), "resets in 2d 7h")
+    }
+
+    // A window already past its reset counts nothing — it has refilled.
+    func testElapsedWindowSaysNothing() {
+        XCTAssertEqual(LimitRow.resetText(limit(0.5, resetsIn: -60), now: now), "")
+        XCTAssertEqual(LimitRow.resetText(limit(0.5, resetsIn: nil), now: now), "")
+    }
+}

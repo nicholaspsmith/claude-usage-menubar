@@ -7,10 +7,15 @@ resets, and which agents are running. Built on
 [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit).
 
 The icon tracks the **5-hour session limit** — the one that actually stops your
-work — green below 50%, orange from 50%, red at 80% and up. Pick its shape from
-menu ▸ Icon: **Arc**, **Gauge**, **Pie**, or **Wedge**. Every choice shows a
-proportion, because that is the icon's whole job; the weekly window is the
-slower one and lives in the menu rather than competing for the single glyph.
+work. Pick its shape and colour under menu ▸ Icon: **Arc**, **Gauge**, **Pie**
+or **Wedge**, in any of seven presets or a custom colour from the macOS colour
+picker. Every shape shows a proportion, because that is the icon's whole job;
+the weekly window is the slower one and lives in the menu rather than competing
+for the single glyph.
+
+Your colour is the **resting** colour. The bar still goes orange at 50% and red
+at 80% — that escalation is the warning, and a meter that looks the same at 5%
+and 95% has stopped saying the thing you opened it for.
 
 ## Install
 

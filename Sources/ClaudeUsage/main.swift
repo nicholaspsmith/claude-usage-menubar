@@ -28,12 +28,14 @@ final class App: NSObject, NSApplicationDelegate {
     /// figure lives in the menu.
     private static let warnPct = 80
 
-    /// Which meter shape draws the icon. Always fed the session fraction —
-    /// the weekly window is the slower, less urgent one, so it lives in the
-    /// menu rather than competing for the single glyph.
-    private var meterStyle: MeterStyle {
-        get { MeterStyle.from(UserDefaults.standard.string(forKey: MeterStyle.defaultsKey)) }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: MeterStyle.defaultsKey) }
+    /// Shape and resting colour, both user-chosen, from StatusItemKit. Always
+    /// fed the session fraction — the weekly window is the slower, less urgent
+    /// one, so it lives in the menu rather than competing for the single glyph.
+    private let appearance = MeterAppearance(defaultStyle: .arc,
+                                             defaultColor: UsageColor.defaultResting)
+    private lazy var appearanceMenu = AppearanceMenu(appearance: appearance) { [weak self] in
+        guard let self else { return }
+        self.render(self.latest)
     }
 
     // Polling does network I/O and walks the transcript tree, so it runs off
@@ -131,18 +133,10 @@ final class App: NSObject, NSApplicationDelegate {
         // implying a full allowance.
         let session = snapshot.limits.limits.first
         let fraction = CGFloat(session?.fraction ?? 0)
-        let color: NSColor
-        if let session {
-            color = UsageColor.fill(fraction: session.fraction, warnPct: Self.warnPct)
-        } else {
-            color = .secondaryLabelColor
-        }
-        switch meterStyle {
-        case .arc:   controller.setIcon(MeterIcon.arc(fraction: fraction, color: color))
-        case .gauge: controller.setIcon(MeterIcon.gauge(fraction: fraction, color: color))
-        case .pie:   controller.setIcon(MeterIcon.pie(fraction: fraction, color: color))
-        case .wedge: controller.setIcon(MeterIcon.wedge(fraction: fraction, color: color))
-        }
+        let color = session.map {
+            UsageColor.fill(fraction: $0.fraction, warnPct: Self.warnPct, resting: appearance.color)
+        } ?? .secondaryLabelColor
+        controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))
     }
 
     // MARK: - Menu
@@ -169,7 +163,7 @@ final class App: NSObject, NSApplicationDelegate {
         }
         for limit in snapshot.limits.limits {
             let item = NSMenuItem()
-            item.view = LimitBarView(limit: limit, warnPct: Self.warnPct)
+            item.view = LimitBarView(limit: limit, warnPct: Self.warnPct, resting: appearance.color)
             menu.addItem(item)
         }
 
@@ -189,17 +183,7 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(action("Sign In to Claude Code…", #selector(signIn)))
         }
 
-        let iconItem = NSMenuItem(title: "Icon", action: nil, keyEquivalent: "")
-        let iconMenu = NSMenu()
-        for style in MeterStyle.allCases {
-            let choice = NSMenuItem(title: style.title, action: #selector(pickStyle(_:)), keyEquivalent: "")
-            choice.target = self
-            choice.representedObject = style.rawValue
-            choice.state = style == meterStyle ? .on : .off
-            iconMenu.addItem(choice)
-        }
-        iconItem.submenu = iconMenu
-        menu.addItem(iconItem)
+        menu.addItem(appearanceMenu.menuItem())
 
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
@@ -255,13 +239,6 @@ final class App: NSObject, NSApplicationDelegate {
             osa.executeAndReturnError(&error)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in self?.poll(force: true) }
-    }
-    @objc private func pickStyle(_ sender: NSMenuItem) {
-        guard let raw = sender.representedObject as? String else { return }
-        meterStyle = MeterStyle.from(raw)
-        // Repaint from the snapshot in hand rather than waiting up to a minute
-        // for the next poll to make the choice visible.
-        render(latest)
     }
     @objc private func quit() { NSApp.terminate(nil) }
 }

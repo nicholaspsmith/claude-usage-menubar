@@ -2,6 +2,8 @@
 
 <p align="center"><img src="docs/mascot.png" width="160" alt="Claude Usage mascot, from the Menubarn widget library"></p>
 
+<p align="center">Part of the <a href="https://widgets.nicksmith.software">Menubarn</a> widget library.</p>
+
 ![The Claude Usage menu](screenshots/menu.png)
 
 A macOS menu-bar app for Claude Code: how much of your plan is left, when it

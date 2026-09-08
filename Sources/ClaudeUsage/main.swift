@@ -141,12 +141,12 @@ final class App: NSObject, NSApplicationDelegate {
         if appearance.style == .character {
             // The owl's eyes are the two windows: session on the left, weekly
             // on the right, each escalating on its own.
+            // Eyes fill black, and only go red once a window is more than three
+            // quarters used.
             let weekly = snapshot.limits.limits.dropFirst().first
-            let weeklyColor = weekly.map {
-                UsageColor.fill(fraction: $0.fraction, warnPct: Self.warnPct, resting: appearance.color)
-            } ?? .secondaryLabelColor
+            func eye(_ f: Double?) -> NSColor { (f ?? 0) > 0.75 ? .systemRed : .black }
             controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0),
-                                                 sessionColor: color, weeklyColor: weeklyColor))
+                                                 sessionColor: eye(session?.fraction), weeklyColor: eye(weekly?.fraction)))
             return
         }
         controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))

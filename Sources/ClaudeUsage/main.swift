@@ -31,9 +31,11 @@ final class App: NSObject, NSApplicationDelegate {
     /// Shape and resting colour, both user-chosen, from StatusItemKit. Always
     /// fed the session fraction — the weekly window is the slower, less urgent
     /// one, so it lives in the menu rather than competing for the single glyph.
-    private let appearance = MeterAppearance(defaultStyle: .arc,
+    private let appearance = MeterAppearance(defaultStyle: .character,
                                              defaultColor: UsageColor.defaultResting)
-    private lazy var appearanceMenu = AppearanceMenu(appearance: appearance) { [weak self] in
+    private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
+                                                     styles: MeterStyle.proportional + [.character],
+                                                     characterTitle: "Owl") { [weak self] in
         guard let self else { return }
         self.render(self.latest)
     }
@@ -136,6 +138,17 @@ final class App: NSObject, NSApplicationDelegate {
         let color = session.map {
             UsageColor.fill(fraction: $0.fraction, warnPct: Self.warnPct, resting: appearance.color)
         } ?? .secondaryLabelColor
+        if appearance.style == .character {
+            // The owl's eyes are the two windows: session on the left, weekly
+            // on the right, each escalating on its own.
+            let weekly = snapshot.limits.limits.dropFirst().first
+            let weeklyColor = weekly.map {
+                UsageColor.fill(fraction: $0.fraction, warnPct: Self.warnPct, resting: appearance.color)
+            } ?? .secondaryLabelColor
+            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0),
+                                                 sessionColor: color, weeklyColor: weeklyColor))
+            return
+        }
         controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))
     }
 

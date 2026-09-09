@@ -146,10 +146,10 @@ final class App: NSObject, NSApplicationDelegate {
             let weekly = snapshot.limits.limits.dropFirst().first
             func eye(_ f: Double?) -> NSColor {
                 let v = f ?? 0
-                if v >= 0.75 { return .systemRed }
-                if v >= 0.5 { return .systemOrange }
-                if v >= 0.25 { return NSColor(red: 0.66, green: 0.9, blue: 0.2, alpha: 1) }   // lime
-                return .systemGreen
+                if v >= 0.75 { return NSColor(red: 0.72, green: 0.10, blue: 0.10, alpha: 1) }   // dark red
+                if v >= 0.5 { return NSColor(red: 0.80, green: 0.42, blue: 0.04, alpha: 1) }    // dark orange
+                if v >= 0.25 { return NSColor(red: 0.42, green: 0.62, blue: 0.08, alpha: 1) }   // dark lime
+                return NSColor(red: 0.10, green: 0.50, blue: 0.22, alpha: 1)                    // dark green
             }
             controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0),
                                                  sessionColor: eye(session?.fraction), weeklyColor: eye(weekly?.fraction)))

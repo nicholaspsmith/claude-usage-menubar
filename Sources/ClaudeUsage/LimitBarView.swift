@@ -16,9 +16,12 @@ final class LimitBarView: NSView {
     private let percent: NSTextField
     private let detail: NSTextField?
 
-    init(limit: UsageLimit, warnPct: Int, resting: NSColor, now: Date = Date()) {
+    /// - Parameter color: the window's own colour, fixed rather than escalating
+    ///   with usage. The bar's length and the percentage say how full it is;
+    ///   the colour says which window it is, and matches the owl's pupil.
+    init(limit: UsageLimit, color: NSColor, now: Date = Date()) {
         self.fraction = CGFloat(max(0, min(1, limit.fraction)))
-        self.color = UsageColor.fill(fraction: limit.fraction, warnPct: warnPct, resting: resting)
+        self.color = color
 
         let labelFont = NSFont.systemFont(ofSize: NSFont.systemFontSize - 1)
         let detailFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)

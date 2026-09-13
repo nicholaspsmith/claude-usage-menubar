@@ -23,19 +23,21 @@ final class App: NSObject, NSApplicationDelegate {
     private weak var liveMenu: NSMenu?
     private weak var liveHeader: HeaderView?
 
-    /// The window that decides the icon. The five-hour session limit is the one
-    /// that actually stops work, so it is what the meter shows; the weekly
-    /// figure lives in the menu.
-    private static let warnPct = 80
-
-    /// Shape and resting colour, both user-chosen, from StatusItemKit. Always
-    /// fed the session fraction — the weekly window is the slower, less urgent
-    /// one, so it lives in the menu rather than competing for the single glyph.
-    private let appearance = MeterAppearance(defaultStyle: .character,
-                                             defaultColor: UsageColor.defaultResting)
+    /// Shape, user-chosen, from StatusItemKit. The geometric meters are always
+    /// fed the session fraction — the five-hour window is the one that actually
+    /// stops work — while the owl shows both windows, one per eye.
+    private let appearance = MeterAppearance(defaultStyle: .character)
+    /// Colour is a pair, not the kit's single resting colour: one for the
+    /// session window, one for the weekly, so the two bars and the two pupils
+    /// can be told apart. Nothing escalates to orange or red any more — the
+    /// owl's drooping lids and the bar lengths carry that.
+    private var colors = ColorPair.stored()
+    private var sessionColor: NSColor { MeterColor.color(fromHex: colors.sessionHex) ?? .systemPurple }
+    private var weeklyColor: NSColor { MeterColor.color(fromHex: colors.weeklyHex) ?? .systemTeal }
     private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
                                                      styles: MeterStyle.proportional + [.character],
-                                                     characterTitle: "Owl") { [weak self] in
+                                                     characterTitle: "Owl",
+                                                     colorItems: { [weak self] menu in self?.addColorPairs(to: menu) }) { [weak self] in
         guard let self else { return }
         self.render(self.latest)
     }
@@ -135,17 +137,17 @@ final class App: NSObject, NSApplicationDelegate {
         // implying a full allowance.
         let session = snapshot.limits.limits.first
         let fraction = CGFloat(session?.fraction ?? 0)
-        let color = session.map {
-            UsageColor.fill(fraction: $0.fraction, warnPct: Self.warnPct, resting: appearance.color)
-        } ?? .secondaryLabelColor
         if appearance.style == .character {
             // The owl's eyes are the two windows: session on the left, weekly
-            // on the right, each escalating on its own.
-            // Each eyelid droops with its window's usage: open at 0, shut at 100%.
+            // on the right. Each eyelid droops with its window's usage — open
+            // at 0, shut at 100% — and each pupil wears its window's colour,
+            // the same one its bar in the menu is drawn in.
             let weekly = snapshot.limits.limits.dropFirst().first
-            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0)))
+            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0),
+                                                 sessionPupil: sessionColor, weeklyPupil: weeklyColor))
             return
         }
+        let color = session == nil ? NSColor.secondaryLabelColor : sessionColor
         controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))
     }
 
@@ -171,9 +173,11 @@ final class App: NSObject, NSApplicationDelegate {
         if snapshot.limits.limits.isEmpty && snapshot.limits.statusText.isEmpty {
             menu.addItem(disabled("No limit data"))
         }
-        for limit in snapshot.limits.limits {
+        // First limit is the session window, second the weekly — the same
+        // order the owl's eyes read in, so each bar takes that eye's colour.
+        for (index, limit) in snapshot.limits.limits.enumerated() {
             let item = NSMenuItem()
-            item.view = LimitBarView(limit: limit, warnPct: Self.warnPct, resting: appearance.color)
+            item.view = LimitBarView(limit: limit, color: index == 0 ? sessionColor : weeklyColor)
             menu.addItem(item)
         }
 
@@ -201,6 +205,42 @@ final class App: NSObject, NSApplicationDelegate {
         menu.addItem(action("Quit", #selector(quit)))
     }
 
+    // MARK: - Colour pairs
+
+    /// The colour block of the Icon submenu: one row per pair, a two-dot
+    /// swatch (session left, weekly right) beside each name.
+    private func addColorPairs(to menu: NSMenu) {
+        for pair in ColorPair.presets {
+            let item = NSMenuItem(title: pair.name, action: #selector(pickColorPair(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = pair.id
+            item.image = Self.pairSwatch(pair)
+            item.state = pair == colors ? .on : .off
+            menu.addItem(item)
+        }
+    }
+
+    private static func pairSwatch(_ pair: ColorPair, diameter: CGFloat = 12) -> NSImage {
+        let gap: CGFloat = 3
+        let image = NSImage(size: NSSize(width: diameter * 2 + gap, height: diameter), flipped: false) { _ in
+            for (i, hex) in [pair.sessionHex, pair.weeklyHex].enumerated() {
+                (MeterColor.color(fromHex: hex) ?? .systemGray).setFill()
+                NSBezierPath(ovalIn: NSRect(x: CGFloat(i) * (diameter + gap), y: 0, width: diameter, height: diameter)).fill()
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
+    @objc private func pickColorPair(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String,
+              let pair = ColorPair.presets.first(where: { $0.id == id }) else { return }
+        colors = pair
+        pair.save()
+        render(latest)
+    }
+
     // MARK: - Menu item helpers
 
     private func header(_ text: String) -> NSMenuItem {
@@ -224,11 +264,6 @@ final class App: NSObject, NSApplicationDelegate {
         item.target = self
         return item
     }
-
-    // MARK: - Formatting
-
-
-
 
     // MARK: - Actions
 

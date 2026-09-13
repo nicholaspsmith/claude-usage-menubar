@@ -19,10 +19,16 @@ is the **5-hour session window** — the one that actually stops your work — a
 the right eye is the **7-day weekly window**. Wide open at 0%, half closed at
 50%, shut at 100%; both eyes closed means both limits are spent.
 
-Prefer a plain meter? Pick a shape and colour under menu ▸ Icon: **Arc**,
-**Gauge**, **Pie** or **Wedge**, in any of seven presets or a custom colour from
-the macOS colour picker. Those track the session limit only; your colour is the
-**resting** colour, and the meter still goes orange at 50% and red at 80%.
+Each pupil wears its window's colour, and the bars in the menu are drawn in the
+same two: session in the left pupil's colour, weekly in the right's, so a glance
+at either tells you which is which. Pick the pair under menu ▸ Icon — **Grape &
+Mint** (the default), **Sky & Tangerine**, **Lime & Fuchsia** or **Rose &
+Cobalt**. The colours never change with usage; the drooping lids and the bar
+lengths carry that.
+
+Prefer a plain meter? Pick a shape under the same menu: **Arc**, **Gauge**,
+**Pie** or **Wedge**. Those track the session limit only, in the session colour
+of your pair.
 
 ## Install
 
@@ -90,8 +96,6 @@ either way, because those come from local files.
 
 If limits read **"Sign-in expired"**, start Claude Code. Only the CLI can mint a
 fresh token — this app can only read the one the CLI leaves behind.
-
-## Notes on the numbers
 
 ## Development
 

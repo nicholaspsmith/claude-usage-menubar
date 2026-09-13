@@ -181,11 +181,13 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(item)
         }
 
-        menu.addItem(.separator())
-        let busy = snapshot.sessions.filter(\.isBusy).count
-        menu.addItem(header("Sessions   \(snapshot.sessions.count) running, \(busy) busy"))
-        for session in snapshot.sessions.prefix(12) {
-            menu.addItem(disabled("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
+        if MenuPreferences.showSessions() {
+            menu.addItem(.separator())
+            let busy = snapshot.sessions.filter(\.isBusy).count
+            menu.addItem(header("Sessions   \(snapshot.sessions.count) running, \(busy) busy"))
+            for session in snapshot.sessions.prefix(12) {
+                menu.addItem(disabled("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
+            }
         }
 
         menu.addItem(.separator())
@@ -198,6 +200,10 @@ final class App: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(appearanceMenu.menuItem())
+
+        let sessions = action("Show Sessions", #selector(toggleSessions))
+        sessions.state = MenuPreferences.showSessions() ? .on : .off
+        menu.addItem(sessions)
 
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
@@ -268,6 +274,16 @@ final class App: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     @objc private func toggleLogin() { LoginItem.toggle() }
+
+    /// Flips the sessions section and rebuilds the menu under the cursor if
+    /// it is still up, so the rows appear or go without reopening it.
+    @objc private func toggleSessions() {
+        MenuPreferences.setShowSessions(!MenuPreferences.showSessions())
+        if let menu = liveMenu {
+            menu.removeAllItems()
+            buildMenu(menu)
+        }
+    }
 
     @objc private func signIn() {
         // `claude auth login` opens a browser and waits, so it needs a real

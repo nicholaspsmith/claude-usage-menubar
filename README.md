@@ -4,7 +4,7 @@
 
 <p align="center">Part of the <a href="https://widgets.nicksmith.software">Menubarn</a> widget library.</p>
 
-![The Claude Usage menu](screenshots/menu.png)
+![The Claude Usage menu, with Show Sessions on](screenshots/menu.png)
 
 A macOS menu-bar app for Claude Code: how much of your plan is left, when it
 resets, and which agents are running. Built on
@@ -58,7 +58,7 @@ one. Re-run it to update; it is safe to run repeatedly.
 | Section | Source |
 |---|---|
 | Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
-| Running Claude Code sessions and whether each is busy | `~/.claude/sessions/*.json` |
+| Running Claude Code sessions and whether each is busy — off by default, turn on with **Show Sessions** in the menu | `~/.claude/sessions/*.json` |
 
 ## The Keychain
 

@@ -21,7 +21,7 @@ the right eye is the **7-day weekly window**. Wide open at 0%, half closed at
 
 Each pupil wears its window's colour, and the bars in the menu are drawn in the
 same two: session in the left pupil's colour, weekly in the right's, so a glance
-at either tells you which is which. Pick the pair under menu ▸ Icon — **Grape &
+at either tells you which is which. Pick the pair under Settings ▸ Icon — **Grape &
 Mint** (the default), **Sky & Tangerine**, **Lime & Fuchsia** or **Rose &
 Cobalt**. The colours never change with usage; the drooping lids and the bar
 lengths carry that.
@@ -58,7 +58,7 @@ one. Re-run it to update; it is safe to run repeatedly.
 | Section | Source |
 |---|---|
 | Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
-| Running Claude Code sessions and whether each is busy — off by default, turn on with **Show Sessions** in the menu | `~/.claude/sessions/*.json` |
+| Running Claude Code sessions and whether each is busy — off by default, turn on with Settings ▸ **Show Sessions** | `~/.claude/sessions/*.json` |
 
 ## The Keychain
 

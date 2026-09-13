@@ -199,15 +199,20 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(action("Sign In to Claude Code…", #selector(signIn)))
         }
 
-        menu.addItem(appearanceMenu.menuItem())
-
+        // Everything the user can set lives one level down, so the top level
+        // is the numbers, a settings entry, and Quit.
+        let settings = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
+        let settingsMenu = NSMenu()
+        settingsMenu.addItem(appearanceMenu.menuItem())
         let sessions = action("Show Sessions", #selector(toggleSessions))
         sessions.state = MenuPreferences.showSessions() ? .on : .off
-        menu.addItem(sessions)
-
+        settingsMenu.addItem(sessions)
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
-        menu.addItem(login)
+        settingsMenu.addItem(login)
+        settings.submenu = settingsMenu
+        menu.addItem(settings)
+
         menu.addItem(action("Quit", #selector(quit)))
     }
 

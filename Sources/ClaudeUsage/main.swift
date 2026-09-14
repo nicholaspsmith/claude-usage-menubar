@@ -313,16 +313,11 @@ final class App: NSObject, NSApplicationDelegate {
 // SMAppService can only ever register the calling process's own bundle. Handle
 // it and exit before the status item is created — otherwise the installer
 // would leave a second, headless menu-bar instance running.
-if let flag = CommandLine.arguments.firstIndex(of: "--login") {
-    let on = CommandLine.arguments.count > flag + 1 ? CommandLine.arguments[flag + 1] != "off" : true
-    do {
-        try LoginItem.setEnabled(on)
-        exit(0)
-    } catch {
-        FileHandle.standardError.write(Data("login item: \(error.localizedDescription)\n".utf8))
-        exit(1)
-    }
-}
+// Shared with every other app in the suite (StatusItemKit). The hand-rolled
+// version this replaced read any value other than "off" as on, so `--login
+// status` — a query — silently registered the app, and a typo like `--login yes`
+// did too.
+LoginCLI.runIfRequested()
 
 let app = NSApplication.shared
 let delegate = App()

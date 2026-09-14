@@ -17,7 +17,9 @@ resets, and which agents are running. Built on
 The icon is an **owl whose eyelids droop as you use up your plan**. The left eye
 is the **5-hour session window** — the one that actually stops your work — and
 the right eye is the **7-day weekly window**. Wide open at 0%, half closed at
-50%, shut at 100%; both eyes closed means both limits are spent.
+50%, shut at 100%; both eyes closed means both limits are spent. Past a quarter
+used, the whites go bloodshot — a deepening pink with red veins — the way a
+cartoon looks when it badly needs sleep.
 
 Each pupil wears its window's colour, and the bars in the menu are drawn in the
 same two: session in the left pupil's colour, weekly in the right's, so a glance

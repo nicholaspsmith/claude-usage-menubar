@@ -55,6 +55,19 @@ one. Re-run it to update; it is safe to run repeatedly.
 **Requires** macOS 13+, Xcode Command Line Tools, and Claude Code signed in
 (`claude auth status` should report `loggedIn: true`).
 
+### Start at Login
+
+Toggle it from the menu, or from the shell:
+
+```sh
+"$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --login on       # or: off, status
+```
+
+`install.sh` already runs this for you. Start at Login is `SMAppService.mainApp`, which can only
+register the calling process's own bundle — so nothing outside the app can turn
+it on, and the command has to be the *installed* binary. A bare `--login`, or
+`--login status`, only reports the current state and changes nothing.
+
 ## What the menu shows
 
 | Section | Source |

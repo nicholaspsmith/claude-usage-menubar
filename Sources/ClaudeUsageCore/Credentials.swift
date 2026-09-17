@@ -117,15 +117,37 @@ public enum CredentialStore {
     /// which leaves our copy correct by its own clock and wrong in fact.
     public static func invalidate() { cache.invalidate() }
 
+    /// The live login, from wherever Claude Code left one.
+    ///
+    /// Every source is a candidate and the best credential wins — never the
+    /// first source that answers. The file used to short-circuit the Keychain,
+    /// and on 2026-09-17 a `.credentials.json` left over from August sat beside
+    /// a live Keychain login: the menu said "Sign-in expired" for weeks while
+    /// `claude auth status` said logged in.
     public static func loadOrThrow() throws -> ClaudeCredentials {
-        var data = fileData()
-        if data == nil {
-            switch keychainData() {
-            case .success(let found): data = found
-            case .failure(let failure): throw failure
-            }
+        try loadOrThrow(file: fileData, keychain: keychainBlobs)
+    }
+
+    static func loadOrThrow(
+        file: () -> Data?,
+        keychain: () -> Result<[Data], LoadFailure>
+    ) throws -> ClaudeCredentials {
+        var blobs: [Data] = []
+        if let fromFile = file() { blobs.append(fromFile) }
+        var keychainFailure: LoadFailure?
+        switch keychain() {
+        case .success(let found): blobs.append(contentsOf: found)
+        case .failure(let failure): keychainFailure = failure
         }
-        guard let data else { throw LoadFailure.notFound }
+        guard let data = bestCredential(among: blobs) else {
+            // With nothing usable anywhere, the Keychain's complaint is the
+            // one worth showing: "locked" or "denied" beats "not signed in".
+            throw keychainFailure ?? (blobs.isEmpty ? LoadFailure.notFound : LoadFailure.unreadable)
+        }
+        return try parse(data)
+    }
+
+    static func parse(_ data: Data) throws -> ClaudeCredentials {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let oauth = root["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String, !token.isEmpty
@@ -153,6 +175,16 @@ public enum CredentialStore {
     /// So: take them all, and prefer the one that is actually still valid,
     /// falling back to the furthest-dated if none are.
     static func keychainData() -> Result<Data, LoadFailure> {
+        switch keychainBlobs() {
+        case .success(let blobs):
+            guard let best = bestCredential(among: blobs) else { return .failure(.unreadable) }
+            return .success(best)
+        case .failure(let failure): return .failure(failure)
+        }
+    }
+
+    /// Every item under the service, as raw blobs, in Keychain order.
+    static func keychainBlobs() -> Result<[Data], LoadFailure> {
         // Two steps on purpose. macOS rejects kSecMatchLimitAll combined with
         // kSecReturnData for generic passwords — it returns errSecParam (-50)
         // before any ACL is consulted, which reads as a mysterious failure
@@ -186,10 +218,8 @@ public enum CredentialStore {
             case .failure(let failure): lastFailure = failure
             }
         }
-        guard let best = bestCredential(among: blobs) else {
-            return .failure(lastFailure ?? .unreadable)
-        }
-        return .success(best)
+        if blobs.isEmpty, let lastFailure { return .failure(lastFailure) }
+        return .success(blobs)
     }
 
     /// One secret, read the only way that does not re-prompt for the password

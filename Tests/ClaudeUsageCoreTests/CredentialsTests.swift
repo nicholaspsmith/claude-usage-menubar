@@ -60,6 +60,29 @@ final class CredentialSelectionTests: XCTestCase {
         XCTAssertEqual(oauth["subscriptionType"] as? String, "recent")
     }
 
+    // 2026-09-17: a stale ~/.claude/.credentials.json from August sat beside
+    // a live Keychain login, and the file was read first and alone — so the
+    // menu said "Sign-in expired" while `claude auth status` said logged in.
+    // Every source is a candidate; the live one wins wherever it lives.
+    func testStaleFileDoesNotShadowLiveKeychainLogin() throws {
+        let stale = blob(sub: "max", expiresAt: past)
+        let live = blob(sub: "max", expiresAt: future)
+        let picked = try CredentialStore.loadOrThrow(file: { stale }, keychain: { .success([live]) })
+        XCTAssertFalse(picked.isExpired)
+    }
+
+    func testKeychainFailureStillServesTheFile() throws {
+        let live = blob(sub: "pro", expiresAt: future)
+        let picked = try CredentialStore.loadOrThrow(file: { live }, keychain: { .failure(.denied) })
+        XCTAssertEqual(picked.planLabel, "Pro")
+    }
+
+    func testNothingAnywhereReportsTheKeychainsReason() {
+        XCTAssertThrowsError(try CredentialStore.loadOrThrow(file: { nil }, keychain: { .failure(.interactionNotAllowed) })) { error in
+            XCTAssertEqual(error as? CredentialStore.LoadFailure, .interactionNotAllowed)
+        }
+    }
+
     func testTokenlessAndGarbageEntriesIgnored() {
         let garbage = Data("not json".utf8)
         let empty = try! JSONSerialization.data(withJSONObject: ["claudeAiOauth": ["accessToken": ""]])

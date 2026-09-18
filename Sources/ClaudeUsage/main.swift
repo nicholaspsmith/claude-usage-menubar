@@ -191,12 +191,14 @@ final class App: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(.separator())
-        // Re-auth is offered whenever the credential is unusable. Only the CLI
-        // can mint a token, and its login is an interactive browser flow, so
-        // this hands off to a Terminal window rather than pretending the menu
-        // bar can complete it.
-        if !snapshot.limits.statusText.isEmpty {
-            menu.addItem(action("Sign In to Claude Code…", #selector(signIn)))
+        // Sign-in is offered whenever the credential is unusable. It runs the
+        // same claude.ai authorisation Claude Code does, from here: the
+        // browser opens on the consent page and comes back to the app, and
+        // the app keeps the resulting login alive itself.
+        if signingIn {
+            menu.addItem(disabled("Waiting for claude.ai in the browser…"))
+        } else if !snapshot.limits.statusText.isEmpty {
+            menu.addItem(action("Sign In with Claude…", #selector(signIn)))
         }
 
         // Everything the user can set lives one level down, so the top level
@@ -210,6 +212,16 @@ final class App: NSObject, NSApplicationDelegate {
         let login = action("Start at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
         settingsMenu.addItem(login)
+        // While the numbers are fine the sign-in lives down here: a login of
+        // the app's own is what lets it stay signed in without the CLI. Only
+        // a login this app made is its to forget; Claude Code's stays.
+        settingsMenu.addItem(.separator())
+        if !signingIn {
+            settingsMenu.addItem(action(OwnLogin.exists ? "Sign In Again…" : "Sign In with Claude…", #selector(signIn)))
+        }
+        if OwnLogin.exists {
+            settingsMenu.addItem(action("Sign Out of Claude Usage", #selector(signOut)))
+        }
         settings.submenu = settingsMenu
         menu.addItem(settings)
 
@@ -290,22 +302,69 @@ final class App: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Sign-in
+
+    private let signInFlow = SignIn()
+    private var signingIn = false
+
+    /// Open claude.ai's consent page and wait for it to come back. The
+    /// menu says so meanwhile, and a finished sign-in refreshes the numbers
+    /// straight away rather than on the next poll.
     @objc private func signIn() {
-        // `claude auth login` opens a browser and waits, so it needs a real
-        // terminal to live in. Refresh shortly after so a completed sign-in
-        // shows up without waiting for the regular poll.
-        let script = """
-        tell application "Terminal"
-            activate
-            do script "claude auth login"
-        end tell
-        """
-        if let osa = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            osa.executeAndReturnError(&error)
+        do {
+            let url = try signInFlow.start { [weak self] outcome in
+                DispatchQueue.main.async { self?.signInEnded(outcome) }
+            }
+            signingIn = true
+            App.log("sign-in: waiting for the browser")
+            NSWorkspace.shared.open(url)
+        } catch {
+            App.log("sign-in: could not listen on localhost: \(error)")
+            let alert = NSAlert()
+            alert.messageText = "Could not start the sign-in"
+            alert.informativeText = "The app could not open a local port for claude.ai to come back to. Try again in a moment."
+            alert.alertStyle = .warning
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in self?.poll(force: true) }
+        if let menu = liveMenu {
+            menu.removeAllItems()
+            buildMenu(menu)
+        }
     }
+
+    private func signInEnded(_ outcome: SignIn.Outcome) {
+        signingIn = false
+        switch outcome {
+        case .signedIn(let plan):
+            App.log("sign-in: done (\(plan))")
+            poll(force: true)
+        case .denied(let reason):
+            App.log("sign-in: denied (\(reason))")
+        case .failed(let reason):
+            App.log("sign-in: failed — \(reason)")
+            let alert = NSAlert()
+            alert.messageText = "Sign-in did not complete"
+            alert.informativeText = reason + "."
+            alert.alertStyle = .warning
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        case .timedOut:
+            App.log("sign-in: timed out")
+        }
+        if let menu = liveMenu {
+            menu.removeAllItems()
+            buildMenu(menu)
+        }
+    }
+
+    @objc private func signOut() {
+        OwnLogin.forget()
+        CredentialStore.invalidate()
+        App.log("sign-out: own login forgotten")
+        poll(force: true)
+    }
+
     @objc private func quit() { NSApp.terminate(nil) }
 }
 

@@ -52,8 +52,9 @@ relative path (`../StatusItemKit`), so a clone somewhere else will not build.
 `build/`, registers Start-at-Login, stops any running copy, and launches the new
 one. Re-run it to update; it is safe to run repeatedly.
 
-**Requires** macOS 13+, Xcode Command Line Tools, and Claude Code signed in
-(`claude auth status` should report `loggedIn: true`).
+**Requires** macOS 13+ and Xcode Command Line Tools. Sign in either by having
+Claude Code signed in (`claude auth status` reports `loggedIn: true`) or from
+the app's own menu — see below.
 
 ### Start at Login
 
@@ -74,6 +75,28 @@ it on, and the command has to be the *installed* binary. A bare `--login`, or
 |---|---|
 | Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
 | Running Claude Code sessions and whether each is busy — off by default, turn on with Settings ▸ **Show Sessions** | `~/.claude/sessions/*.json` |
+
+## Signing in
+
+The app reads Claude Code's login when there is one. When there is not — or it
+has lapsed, or you would rather the app kept itself signed in — **Sign In with
+Claude…** (under Settings, or at the top of the menu when the numbers are
+missing) runs the same claude.ai authorisation Claude Code does, from the
+menu bar: the browser opens on the consent page, the app listens on a
+localhost port for it to come back, trades the code for tokens, and reads the
+plan from the profile endpoint. It asks for the `user:profile` scope only —
+enough to read usage, nothing that could run inference or mint API keys.
+
+That login is the app's own. It is stored in its own Keychain item
+(`Claude Usage-credentials`, written and read through `/usr/bin/security` so
+it never prompts), refreshed by the app ten minutes before it lapses, and
+preferred over Claude Code's when both exist. Claude Code's credential is never
+written to or refreshed — refresh tokens rotate, and refreshing the CLI's
+would sign the CLI out. **Sign Out of Claude Usage** forgets the app's own
+login and goes back to reading Claude Code's.
+
+The flow borrows Claude Code's OAuth client id, the way the community tooling
+around Claude Code does; Anthropic could change or restrict it.
 
 ## The Keychain
 
@@ -109,8 +132,9 @@ If the read fails, the limits section says why — "Not signed in", "Keychain
 locked", "Keychain access denied". Token counts and session state keep working
 either way, because those come from local files.
 
-If limits read **"Sign-in expired"**, start Claude Code. Only the CLI can mint a
-fresh token — this app can only read the one the CLI leaves behind.
+If limits read **"Sign-in expired"**, either start Claude Code (which refreshes
+its own token) or use **Sign In with Claude…** to give the app a login it can
+refresh itself.
 
 ## Development
 

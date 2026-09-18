@@ -125,7 +125,13 @@ public enum CredentialStore {
     /// a live Keychain login: the menu said "Sign-in expired" for weeks while
     /// `claude auth status` said logged in.
     public static func loadOrThrow() throws -> ClaudeCredentials {
-        try loadOrThrow(file: fileData, keychain: keychainBlobs)
+        // A login made from this app's own menu comes first: it is the one
+        // the app can keep alive by itself, and the one the user chose for
+        // this app, which need not be the account the CLI is on.
+        if let own = OwnLogin.current(), let credentials = try? parse(own), !credentials.isExpired {
+            return credentials
+        }
+        return try loadOrThrow(file: fileData, keychain: keychainBlobs)
     }
 
     static func loadOrThrow(
@@ -257,6 +263,10 @@ public enum CredentialStore {
     /// nil when the tool could not be run — distinct from it running and
     /// saying no, which is a `LoadFailure` the menu should report.
     static func securityToolSecret(forAccount account: String) -> Result<Data, LoadFailure>? {
+        securityToolSecret(service: service, account: account)
+    }
+
+    static func securityToolSecret(service: String, account: String) -> Result<Data, LoadFailure>? {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: securityToolPath)
         // The secret travels on stdout, not in argv, so it stays out of `ps`.

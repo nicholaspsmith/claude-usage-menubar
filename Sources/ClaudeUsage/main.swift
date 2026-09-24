@@ -231,6 +231,8 @@ final class App: NSObject, NSApplicationDelegate {
         settings.submenu = settingsMenu
         menu.addItem(settings)
 
+        menu.addItem(.separator())
+        menu.addItem(AppVersion.menuItem())
         menu.addItem(action("Quit", #selector(quit)))
     }
 

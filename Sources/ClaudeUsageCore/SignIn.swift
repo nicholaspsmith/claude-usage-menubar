@@ -37,10 +37,10 @@ public final class SignIn {
     private var port: UInt16 = 0
     private var finished = false
     private var completion: ((Outcome) -> Void)?
-    private let post: (URLRequest) -> [String: Any]?
+    private let post: (URLRequest) -> Result<[String: Any], OwnLogin.PostFailure>
     private let save: (Data) -> Bool
 
-    public init(post: @escaping (URLRequest) -> [String: Any]? = OwnLogin.post,
+    public init(post: @escaping (URLRequest) -> Result<[String: Any], OwnLogin.PostFailure> = OwnLogin.request,
                 save: @escaping (Data) -> Bool = { OwnLogin.save($0) }) {
         self.post = post
         self.save = save
@@ -141,12 +141,18 @@ public final class SignIn {
     /// Trade the code for tokens, read the plan, save. Network calls, but
     /// already on the sign-in queue.
     private func complete(code: String, exchange: ClaudeOAuth.Exchange) {
-        guard let json = post(ClaudeOAuth.exchangeRequest(code: code, for: exchange, port: port)),
-              let tokens = ClaudeOAuth.Tokens(json: json)
-        else { return finish(.failed("The token exchange was refused")) }
+        let host = ClaudeOAuth.tokenURL.host ?? "claude.ai"
+        let json: [String: Any]
+        switch post(ClaudeOAuth.exchangeRequest(code: code, for: exchange, port: port)) {
+        case .success(let reply): json = reply
+        case .failure(let why): return finish(.failed(why.message(host: host, what: "the token exchange")))
+        }
+        guard let tokens = ClaudeOAuth.Tokens(json: json) else {
+            return finish(.failed("\(host) answered the token exchange without an access token"))
+        }
         // The plan is a nicety: a profile fetch that fails leaves the label
         // blank rather than failing the sign-in.
-        let profile = post(ClaudeOAuth.profileRequest(accessToken: tokens.accessToken)) ?? [:]
+        let profile = (try? post(ClaudeOAuth.profileRequest(accessToken: tokens.accessToken)).get()) ?? [:]
         let plan = ClaudeOAuth.Plan(profile: profile)
         guard save(OwnLogin.blob(tokens: tokens, plan: plan)) else {
             return finish(.failed("The login could not be saved to the Keychain"))

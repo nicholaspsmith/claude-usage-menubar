@@ -136,17 +136,78 @@ public enum OwnLogin {
         return renewed
     }
 
+    /// Why a round trip to claude.ai's servers came back empty. Kept apart
+    /// so a sign-in can say "could not reach" and "refused" as the different
+    /// things they are — the one is the network, the other the account.
+    public enum PostFailure: Error, Equatable {
+        /// No HTTP reply at all: DNS, TCP, TLS, a proxy or VPN in the way.
+        case unreachable(String)
+        /// An HTTP reply outside 2xx. `detail` is the server's `error` or
+        /// `error_description` when the body carried one, else its first line.
+        case rejected(status: Int, detail: String)
+        /// 2xx, but not a JSON object.
+        case malformed
+        /// Nothing in the time this app is willing to wait.
+        case timedOut
+
+        /// One sentence for a log line or an alert. `host` names the server
+        /// and `what` the request, e.g. "the token exchange".
+        public func message(host: String, what: String) -> String {
+            switch self {
+            case .unreachable(let why): return "Could not reach \(host) for \(what): \(why)"
+            case .rejected(let status, let detail):
+                return detail.isEmpty ? "\(host) refused \(what) (HTTP \(status))"
+                                      : "\(host) refused \(what) (HTTP \(status): \(detail))"
+            case .malformed: return "\(host) answered \(what) with something other than JSON"
+            case .timedOut: return "\(host) did not answer \(what) in time"
+            }
+        }
+    }
+
     /// One JSON round trip, synchronous: the callers are already off the
     /// main thread, and a sign-in is nothing to keep a queue busy over.
-    public static func post(_ request: URLRequest) -> [String: Any]? {
-        var result: [String: Any]?
+    public static func request(_ request: URLRequest) -> Result<[String: Any], PostFailure> {
+        var result: Result<[String: Any], PostFailure> = .failure(.timedOut)
         let done = DispatchSemaphore(value: 0)
-        URLSession.shared.dataTask(with: request) { data, response, _ in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             defer { done.signal() }
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode), let data else { return }
-            result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            if let error {
+                result = .failure(.unreachable(error.localizedDescription))
+                return
+            }
+            guard let http = response as? HTTPURLResponse else {
+                result = .failure(.unreachable("no HTTP response"))
+                return
+            }
+            let body = data ?? Data()
+            let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+            guard (200..<300).contains(http.statusCode) else {
+                result = .failure(.rejected(status: http.statusCode, detail: Self.detail(json: json, body: body)))
+                return
+            }
+            result = json.map { .success($0) } ?? .failure(.malformed)
         }.resume()
         _ = done.wait(timeout: .now() + 35)
         return result
+    }
+
+    /// The same, for callers that only care whether it worked.
+    public static func post(_ request: URLRequest) -> [String: Any]? {
+        try? Self.request(request).get()
+    }
+
+    /// What an error reply had to say for itself, kept short enough for an
+    /// alert: the OAuth `error` fields when present, else the body's first
+    /// line, trimmed.
+    static func detail(json: [String: Any]?, body: Data) -> String {
+        if let json {
+            let error = (json["error"] as? String) ?? ((json["error"] as? [String: Any])?["message"] as? String)
+            let description = json["error_description"] as? String
+            let parts = [error, description].compactMap { $0 }.filter { !$0.isEmpty }
+            if !parts.isEmpty { return parts.joined(separator: ": ") }
+        }
+        let line = String(decoding: body.prefix(200), as: UTF8.self)
+            .split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+        return line.trimmingCharacters(in: .whitespaces)
     }
 }

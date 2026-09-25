@@ -228,9 +228,9 @@ final class SignInListenerTests: XCTestCase {
         let flow = SignIn(post: { request in
             if request.url == ClaudeOAuth.tokenURL {
                 exchanged = (try? JSONSerialization.jsonObject(with: request.httpBody!)) as? [String: Any]
-                return ["access_token": "at", "refresh_token": "rt", "expires_in": 3600]
+                return .success(["access_token": "at", "refresh_token": "rt", "expires_in": 3600])
             }
-            return ["account": ["has_claude_max": true], "organization": ["rate_limit_tier": "default_claude_max_5x"]]
+            return .success(["account": ["has_claude_max": true], "organization": ["rate_limit_tier": "default_claude_max_5x"]])
         }, save: { saved = $0; return true })
         let finished = expectation(description: "outcome")
         var outcome: SignIn.Outcome?
@@ -249,7 +249,7 @@ final class SignInListenerTests: XCTestCase {
     }
 
     func testWrongStateIsRefusedAndTheAttemptKeepsWaiting() throws {
-        let flow = SignIn(post: { _ in XCTFail("no exchange"); return nil }, save: { _ in false })
+        let flow = SignIn(post: { _ in XCTFail("no exchange"); return .failure(.timedOut) }, save: { _ in false })
         var ended = false
         let authorize = try flow.start { _ in ended = true }
         let (status, _) = get(callback(from: authorize, query: "code=c&state=nope"))
@@ -259,7 +259,7 @@ final class SignInListenerTests: XCTestCase {
     }
 
     func testDenialEndsTheAttempt() throws {
-        let flow = SignIn(post: { _ in XCTFail("no exchange"); return nil }, save: { _ in false })
+        let flow = SignIn(post: { _ in XCTFail("no exchange"); return .failure(.timedOut) }, save: { _ in false })
         let finished = expectation(description: "outcome")
         var outcome: SignIn.Outcome?
         let authorize = try flow.start { outcome = $0; finished.fulfill() }
@@ -267,6 +267,43 @@ final class SignInListenerTests: XCTestCase {
         _ = get(callback(from: authorize, query: "error=access_denied&state=\(state)"))
         wait(for: [finished], timeout: 5)
         XCTAssertEqual(outcome, .denied("access_denied"))
+    }
+
+    private func failedExchange(_ failure: OwnLogin.PostFailure) throws -> SignIn.Outcome? {
+        let flow = SignIn(post: { _ in .failure(failure) }, save: { _ in XCTFail("nothing to save"); return false })
+        let finished = expectation(description: "outcome")
+        var outcome: SignIn.Outcome?
+        let authorize = try flow.start { outcome = $0; finished.fulfill() }
+        let state = URLComponents(url: authorize, resolvingAgainstBaseURL: false)!.queryItems!.first { $0.name == "state" }!.value!
+        _ = get(callback(from: authorize, query: "code=c0de&state=\(state)"))
+        wait(for: [finished], timeout: 5)
+        return outcome
+    }
+
+    func testARejectedExchangeNamesTheStatusAndReason() throws {
+        XCTAssertEqual(try failedExchange(.rejected(status: 400, detail: "invalid_grant")),
+                       .failed("platform.claude.com refused the token exchange (HTTP 400: invalid_grant)"))
+    }
+
+    func testAnUnreachableEndpointIsNotCalledARefusal() throws {
+        XCTAssertEqual(try failedExchange(.unreachable("A server with the specified hostname could not be found")),
+                       .failed("Could not reach platform.claude.com for the token exchange: A server with the specified hostname could not be found"))
+    }
+
+    func testATimedOutExchangeSaysSo() throws {
+        XCTAssertEqual(try failedExchange(.timedOut),
+                       .failed("platform.claude.com did not answer the token exchange in time"))
+    }
+
+    func testAReplyWithoutATokenSaysSo() throws {
+        let flow = SignIn(post: { _ in .success(["error": "odd"]) }, save: { _ in false })
+        let finished = expectation(description: "outcome")
+        var outcome: SignIn.Outcome?
+        let authorize = try flow.start { outcome = $0; finished.fulfill() }
+        let state = URLComponents(url: authorize, resolvingAgainstBaseURL: false)!.queryItems!.first { $0.name == "state" }!.value!
+        _ = get(callback(from: authorize, query: "code=c0de&state=\(state)"))
+        wait(for: [finished], timeout: 5)
+        XCTAssertEqual(outcome, .failed("platform.claude.com answered the token exchange without an access token"))
     }
 }
 

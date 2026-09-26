@@ -33,8 +33,8 @@ final class App: NSObject, NSApplicationDelegate {
     /// fed the session fraction — the five-hour window is the one that actually
     /// stops work — while the owl shows both windows at once.
     /// There is no colour to choose: the owl's pupils and the menu's bars are
-    /// `MeterColor.health` of a fraction, green when a window is fresh through
-    /// yellow and orange to red when it is spent; the geometric meters use `MeterColor.usage`, cyan to red.
+    /// `MeterColor.health` of a fraction, dark green (#005401) when a window is
+    /// fresh, reddening to #FF5401 when it is spent; the geometric meters use `MeterColor.usage`, cyan to red.
     private let appearance = MeterAppearance(defaultStyle: .character)
     private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
                                                      styles: MeterStyle.proportional + [.character],
@@ -174,7 +174,7 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(disabled("No limit data"))
         }
         // Each bar wears the colour of its own fraction on the pupils' ramp,
-        // green through yellow and orange to red, so the weekly bar matches the pupils.
+        // #005401 reddening to #FF5401, so the weekly bar matches the pupils.
         for limit in snapshot.limits.limits {
             let item = NSMenuItem()
             item.view = LimitBarView(limit: limit, color: MeterColor.health(CGFloat(limit.fraction)))

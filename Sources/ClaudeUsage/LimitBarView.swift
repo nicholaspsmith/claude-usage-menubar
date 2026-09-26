@@ -22,9 +22,9 @@ final class LimitBarView: NSView {
     private let percent: NSTextField
     private let detail: NSTextField?
 
-    /// - Parameter color: the window's own colour, fixed rather than escalating
-    ///   with usage. The bar's length and the percentage say how full it is;
-    ///   the colour says which window it is, and matches the owl's pupil.
+    /// - Parameter color: the colour of this window's fraction on the usage
+    ///   ramp, cyan when fresh and red when spent — the same ramp the owl's
+    ///   pupils follow, so the weekly bar and the pupils match.
     init(limit: UsageLimit, color: NSColor, now: Date = Date()) {
         self.fraction = CGFloat(max(0, min(1, limit.fraction)))
         self.color = color

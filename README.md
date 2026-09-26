@@ -18,19 +18,20 @@ The icon is an **owl whose eyelids droop as you use up your 5-hour session
 window** — the one that actually stops your work. Both lids come down together:
 wide open at 0%, half closed at 50%, shut at 100%.
 
-The **7-day weekly window** is the owl's health. Past a quarter used, the whites
-go bloodshot — a deepening pink with red veins, the way a cartoon looks when it
-badly needs sleep — and the pupils run from **cyan** at 0% through blue and
-magenta to **red** at 100%. Shut eyes with red pupils means both limits are
-spent.
+The **7-day weekly window** is the owl's health. Red veins fade in from the
+start — their opacity is the weekly percentage, invisible at 0% and solid at
+100% — and past a quarter used the whites turn a deepening pink, the way a
+cartoon looks when it badly needs sleep. The pupils run like a traffic light:
+**green** at 0%, **yellow** at 50%, **orange** at 75%, **red** at 100%. Shut
+eyes with red pupils means both limits are spent.
 
-The bars in the menu follow the same ramp, each by its own percentage, so the
-weekly bar is always the colour of the pupils. There is no colour to pick: the
-colours mean something.
+The bars in the menu follow the same green-to-red ramp, each by its own
+percentage, so the weekly bar is always the colour of the pupils. There is no
+colour to pick: the colours mean something.
 
 Prefer a plain meter? Pick a shape under Settings ▸ Icon: **Arc**, **Gauge**,
-**Pie** or **Wedge**. Those track the session limit only, coloured by it on the
-same ramp.
+**Pie** or **Wedge**. Those track the session limit only, coloured by it from
+**cyan** at 0% through blue and magenta to **red** at 100%.
 
 ## Install
 

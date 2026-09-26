@@ -14,23 +14,23 @@ resets, and which agents are running. Built on
 
 ![The menu-bar icon](docs/menubar-icon.png)
 
-The icon is an **owl whose eyelids droop as you use up your plan**. The left eye
-is the **5-hour session window** — the one that actually stops your work — and
-the right eye is the **7-day weekly window**. Wide open at 0%, half closed at
-50%, shut at 100%; both eyes closed means both limits are spent. Past a quarter
-used, the whites go bloodshot — a deepening pink with red veins — the way a
-cartoon looks when it badly needs sleep.
+The icon is an **owl whose eyelids droop as you use up your 5-hour session
+window** — the one that actually stops your work. Both lids come down together:
+wide open at 0%, half closed at 50%, shut at 100%.
 
-Each pupil wears its window's colour, and the bars in the menu are drawn in the
-same two: session in the left pupil's colour, weekly in the right's, so a glance
-at either tells you which is which. Pick the pair under Settings ▸ Icon — **Grape &
-Mint** (the default), **Sky & Tangerine**, **Lime & Fuchsia** or **Rose &
-Cobalt**. The colours never change with usage; the drooping lids and the bar
-lengths carry that.
+The **7-day weekly window** is the owl's health. Past a quarter used, the whites
+go bloodshot — a deepening pink with red veins, the way a cartoon looks when it
+badly needs sleep — and the pupils run from **cyan** at 0% through blue and
+magenta to **red** at 100%. Shut eyes with red pupils means both limits are
+spent.
 
-Prefer a plain meter? Pick a shape under the same menu: **Arc**, **Gauge**,
-**Pie** or **Wedge**. Those track the session limit only, in the session colour
-of your pair.
+The bars in the menu follow the same ramp, each by its own percentage, so the
+weekly bar is always the colour of the pupils. There is no colour to pick: the
+colours mean something.
+
+Prefer a plain meter? Pick a shape under Settings ▸ Icon: **Arc**, **Gauge**,
+**Pie** or **Wedge**. Those track the session limit only, coloured by it on the
+same ramp.
 
 ## Install
 

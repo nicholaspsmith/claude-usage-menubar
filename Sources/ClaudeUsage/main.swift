@@ -31,19 +31,15 @@ final class App: NSObject, NSApplicationDelegate {
 
     /// Shape, user-chosen, from StatusItemKit. The geometric meters are always
     /// fed the session fraction — the five-hour window is the one that actually
-    /// stops work — while the owl shows both windows, one per eye.
+    /// stops work — while the owl shows both windows at once.
+    /// There is no colour to choose: every colour is `MeterColor.usage` of a
+    /// fraction, cyan when a window is fresh and red when it is spent, so the
+    /// owl's pupils and the menu's bars say the same thing.
     private let appearance = MeterAppearance(defaultStyle: .character)
-    /// Colour is a pair, not the kit's single resting colour: one for the
-    /// session window, one for the weekly, so the two bars and the two pupils
-    /// can be told apart. Nothing escalates to orange or red any more — the
-    /// owl's drooping lids and the bar lengths carry that.
-    private var colors = ColorPair.stored()
-    private var sessionColor: NSColor { MeterColor.color(fromHex: colors.sessionHex) ?? .systemPurple }
-    private var weeklyColor: NSColor { MeterColor.color(fromHex: colors.weeklyHex) ?? .systemTeal }
     private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
                                                      styles: MeterStyle.proportional + [.character],
                                                      characterTitle: "Owl",
-                                                     colorItems: { [weak self] menu in self?.addColorPairs(to: menu) }) { [weak self] in
+                                                     offersColour: false) { [weak self] in
         guard let self else { return }
         self.render(self.latest)
     }
@@ -144,16 +140,14 @@ final class App: NSObject, NSApplicationDelegate {
         let session = snapshot.limits.limits.first
         let fraction = CGFloat(session?.fraction ?? 0)
         if appearance.style == .character {
-            // The owl's eyes are the two windows: session on the left, weekly
-            // on the right. Each eyelid droops with its window's usage — open
-            // at 0, shut at 100% — and each pupil wears its window's colour,
-            // the same one its bar in the menu is drawn in.
+            // The owl shows both windows at once. Its eyelids droop with the
+            // session — open at 0, shut at 100% — and the weekly window is its
+            // health: the whites go bloodshot and the pupils run cyan to red.
             let weekly = snapshot.limits.limits.dropFirst().first
-            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0),
-                                                 sessionPupil: sessionColor, weeklyPupil: weeklyColor))
+            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0)))
             return
         }
-        let color = session == nil ? NSColor.secondaryLabelColor : sessionColor
+        let color = session == nil ? NSColor.secondaryLabelColor : MeterColor.usage(fraction)
         controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))
     }
 
@@ -179,11 +173,11 @@ final class App: NSObject, NSApplicationDelegate {
         if snapshot.limits.limits.isEmpty && snapshot.limits.statusText.isEmpty {
             menu.addItem(disabled("No limit data"))
         }
-        // First limit is the session window, second the weekly — the same
-        // order the owl's eyes read in, so each bar takes that eye's colour.
-        for (index, limit) in snapshot.limits.limits.enumerated() {
+        // Each bar wears the colour of its own fraction, the same ramp as the
+        // owl's pupils, so the weekly bar and the pupils always agree.
+        for limit in snapshot.limits.limits {
             let item = NSMenuItem()
-            item.view = LimitBarView(limit: limit, color: index == 0 ? sessionColor : weeklyColor)
+            item.view = LimitBarView(limit: limit, color: MeterColor.usage(CGFloat(limit.fraction)))
             menu.addItem(item)
         }
 
@@ -234,42 +228,6 @@ final class App: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(AppVersion.menuItem())
         menu.addItem(action("Quit", #selector(quit)))
-    }
-
-    // MARK: - Colour pairs
-
-    /// The colour block of the Icon submenu: one row per pair, a two-dot
-    /// swatch (session left, weekly right) beside each name.
-    private func addColorPairs(to menu: NSMenu) {
-        for pair in ColorPair.presets {
-            let item = NSMenuItem(title: pair.name, action: #selector(pickColorPair(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = pair.id
-            item.image = Self.pairSwatch(pair)
-            item.state = pair == colors ? .on : .off
-            menu.addItem(item)
-        }
-    }
-
-    private static func pairSwatch(_ pair: ColorPair, diameter: CGFloat = 12) -> NSImage {
-        let gap: CGFloat = 3
-        let image = NSImage(size: NSSize(width: diameter * 2 + gap, height: diameter), flipped: false) { _ in
-            for (i, hex) in [pair.sessionHex, pair.weeklyHex].enumerated() {
-                (MeterColor.color(fromHex: hex) ?? .systemGray).setFill()
-                NSBezierPath(ovalIn: NSRect(x: CGFloat(i) * (diameter + gap), y: 0, width: diameter, height: diameter)).fill()
-            }
-            return true
-        }
-        image.isTemplate = false
-        return image
-    }
-
-    @objc private func pickColorPair(_ sender: NSMenuItem) {
-        guard let id = sender.representedObject as? String,
-              let pair = ColorPair.presets.first(where: { $0.id == id }) else { return }
-        colors = pair
-        pair.save()
-        render(latest)
     }
 
     // MARK: - Menu item helpers

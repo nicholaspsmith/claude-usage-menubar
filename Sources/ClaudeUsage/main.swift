@@ -32,9 +32,9 @@ final class App: NSObject, NSApplicationDelegate {
     /// Shape, user-chosen, from StatusItemKit. The geometric meters are always
     /// fed the session fraction — the five-hour window is the one that actually
     /// stops work — while the owl shows both windows at once.
-    /// There is no colour to choose: every colour is `MeterColor.usage` of a
-    /// fraction, cyan when a window is fresh and red when it is spent, so the
-    /// owl's pupils and the menu's bars say the same thing.
+    /// There is no colour to choose: the owl's pupils and the menu's bars are
+    /// `MeterColor.health` of a fraction, green when a window is fresh through
+    /// yellow and orange to red when it is spent; the geometric meters use `MeterColor.usage`, cyan to red.
     private let appearance = MeterAppearance(defaultStyle: .character)
     private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
                                                      styles: MeterStyle.proportional + [.character],
@@ -142,7 +142,7 @@ final class App: NSObject, NSApplicationDelegate {
         if appearance.style == .character {
             // The owl shows both windows at once. Its eyelids droop with the
             // session — open at 0, shut at 100% — and the weekly window is its
-            // health: the whites go bloodshot and the pupils run cyan to red.
+            // health: the whites go bloodshot and the pupils run green to red.
             let weekly = snapshot.limits.limits.dropFirst().first
             controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0)))
             return
@@ -173,11 +173,11 @@ final class App: NSObject, NSApplicationDelegate {
         if snapshot.limits.limits.isEmpty && snapshot.limits.statusText.isEmpty {
             menu.addItem(disabled("No limit data"))
         }
-        // Each bar wears the colour of its own fraction, the same ramp as the
-        // owl's pupils, so the weekly bar and the pupils always agree.
+        // Each bar wears the colour of its own fraction on the pupils' ramp,
+        // green through yellow and orange to red, so the weekly bar matches the pupils.
         for limit in snapshot.limits.limits {
             let item = NSMenuItem()
-            item.view = LimitBarView(limit: limit, color: MeterColor.usage(CGFloat(limit.fraction)))
+            item.view = LimitBarView(limit: limit, color: MeterColor.health(CGFloat(limit.fraction)))
             menu.addItem(item)
         }
 

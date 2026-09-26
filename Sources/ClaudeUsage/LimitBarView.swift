@@ -23,7 +23,7 @@ final class LimitBarView: NSView {
     private let detail: NSTextField?
 
     /// - Parameter color: the colour of this window's fraction on the usage
-    ///   ramp, green when fresh through yellow and orange to red when spent — the same ramp the owl's
+    ///   ramp, dark green (#005401) when fresh reddening to #FF5401 when spent — the same ramp the owl's
     ///   pupils follow, so the weekly bar and the pupils match.
     init(limit: UsageLimit, color: NSColor, now: Date = Date()) {
         self.fraction = CGFloat(max(0, min(1, limit.fraction)))

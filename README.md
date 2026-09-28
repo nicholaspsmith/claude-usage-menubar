@@ -64,7 +64,7 @@ Toggle it from the menu, or from the shell:
 "$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --login on       # or: off, status
 ```
 
-`install.sh` already runs this for you. Start at Login is `SMAppService.mainApp`, which can only
+`install.sh` asks to run this for you (when run in a terminal). Start at Login is `SMAppService.mainApp`, which can only
 register the calling process's own bundle — so nothing outside the app can turn
 it on, and the command has to be the *installed* binary. A bare `--login`, or
 `--login status`, only reports the current state and changes nothing.

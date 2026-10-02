@@ -53,6 +53,14 @@ final class App: NSObject, NSApplicationDelegate {
     private var pollPending = false
     private var forceNext = false
 
+    /// The owl blinks on every wall-clock minute. One-shot timers, re-aimed
+    /// at the next minute each time, so a late fire after sleep never drifts.
+    private var blinkTimer: Timer?
+    private var blinkFrames: Timer?
+    private var blinkStart: Date?
+    /// How shut the lids are mid-blink, layered over the session droop.
+    private var blinkClosure: CGFloat = 0
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         controller = StatusItemController(
             pollInterval: 60,
@@ -75,6 +83,48 @@ final class App: NSObject, NSApplicationDelegate {
         yieldClient = YieldClient(item: controller)
         yieldClient.start()
         controller.start()
+
+        scheduleBlink()
+        // A timer aimed across sleep or a clock change fires late or never.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in self?.scheduleBlink() }
+        NotificationCenter.default.addObserver(
+            forName: .NSSystemClockDidChange, object: nil, queue: .main) { [weak self] _ in self?.scheduleBlink() }
+    }
+
+    // MARK: - Blink
+
+    private func scheduleBlink() {
+        blinkTimer?.invalidate()
+        let timer = Timer(fire: Blink.nextMinute(after: Date()), interval: 0, repeats: false) { [weak self] _ in
+            self?.blink()
+            self?.scheduleBlink()
+        }
+        // Common modes: the owl keeps blinking while its menu is open.
+        RunLoop.main.add(timer, forMode: .common)
+        blinkTimer = timer
+    }
+
+    private func blink() {
+        // Only the owl has lids, and Reduce Motion means no motion.
+        guard appearance.style == .character,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+              blinkFrames == nil else { return }
+        blinkStart = Date()
+        let frames = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in self?.blinkFrame() }
+        RunLoop.main.add(frames, forMode: .common)
+        blinkFrames = frames
+    }
+
+    private func blinkFrame() {
+        guard let start = blinkStart, let closure = Blink.closure(at: Date().timeIntervalSince(start)) else {
+            blinkFrames?.invalidate(); blinkFrames = nil; blinkStart = nil
+            blinkClosure = 0
+            render(latest)
+            return
+        }
+        blinkClosure = CGFloat(closure)
+        render(latest)
     }
 
     /// A one-line breadcrumb per poll. A menu-bar app has nowhere to print a
@@ -143,8 +193,10 @@ final class App: NSObject, NSApplicationDelegate {
             // The owl shows both windows at once. Its eyelids droop with the
             // session — open at 0, shut at 100% — and the weekly window is its
             // health: the whites go bloodshot and the pupils run green to red.
+            // A blink closes whatever the session has left open.
             let weekly = snapshot.limits.limits.dropFirst().first
-            controller.setIcon(CharacterIcon.owl(session: fraction, weekly: CGFloat(weekly?.fraction ?? 0)))
+            let lids = fraction + (1 - fraction) * blinkClosure
+            controller.setIcon(CharacterIcon.owl(session: lids, weekly: CGFloat(weekly?.fraction ?? 0)))
             return
         }
         let color = session == nil ? NSColor.secondaryLabelColor : MeterColor.usage(fraction)

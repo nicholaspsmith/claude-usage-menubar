@@ -24,6 +24,12 @@ in the last quarter red veins fade in — barely there at 75%, solid at 100%. Th
 (`#005401`) at 0% and redden steadily to **orange-red** (`#FF5401`) at 100%.
 Shut eyes with red pupils means both limits are spent.
 
+Once a minute, on the minute, the owl **blinks**. The timing is a human
+spontaneous blink slowed about 1.5× so it reads at menu-bar size: the lids fall
+in 140 ms (slow to start, then fast), stay shut for 50 ms, and take 360 ms to
+lift, quickly at first and then settling. The whole blink takes 550 ms. It is
+skipped when Reduce Motion is on.
+
 The bars in the menu follow the same green-to-red ramp, each by its own
 percentage, so the weekly bar is always the colour of the pupils. There is no
 colour to pick: the colours mean something.

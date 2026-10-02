@@ -47,11 +47,4 @@ final class BlinkTests: XCTestCase {
         }
     }
 
-    func testNextMinute() {
-        let mid = Date(timeIntervalSince1970: 1_000_000_030.4)
-        XCTAssertEqual(Blink.nextMinute(after: mid).timeIntervalSince1970, 1_000_000_080, accuracy: 1e-6)
-        // Exactly on the minute (the timer that just fired) means the next one.
-        let on = Date(timeIntervalSince1970: 1_000_000_020)
-        XCTAssertEqual(Blink.nextMinute(after: on).timeIntervalSince1970, 1_000_000_080, accuracy: 1e-6)
-    }
 }

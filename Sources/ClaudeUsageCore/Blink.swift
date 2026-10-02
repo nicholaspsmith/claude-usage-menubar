@@ -36,11 +36,4 @@ public enum Blink {
         }
         return nil
     }
-
-    /// The next whole minute of the wall clock strictly after `date`, so the
-    /// timer that fires on one minute schedules the next rather than itself.
-    public static func nextMinute(after date: Date) -> Date {
-        let t = date.timeIntervalSince1970
-        return Date(timeIntervalSince1970: (floor(t / 60) + 1) * 60)
-    }
 }

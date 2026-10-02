@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.3.0] - 2026-10-02
+
+- feat: the owl blinks once a minute, on the minute: a slowed version of a real blink, with the lids falling fast, holding shut briefly, and lifting with a long settle (550 ms in all; skipped under Reduce Motion)
+
 ## [1.2.1] - 2026-09-28
 
 - `install.sh` now asks whether to turn on Start at Login (skipped when it is already on, or when there is no terminal to ask in), then relaunches the app, quitting any running copy first so the new build takes over

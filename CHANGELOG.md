@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.4.0] - 2026-10-02
+
+- feat: the owl takes turns with the other animated Menumon mascots: it blinks on :00, and Menu Pimp, Carol, Caveepyan and Armonitor follow a second apart (only those that are running)
+
 ## [1.3.0] - 2026-10-02
 
 - feat: the owl blinks once a minute, on the minute: a slowed version of a real blink, with the lids falling fast, holding shut briefly, and lifting with a long settle (550 ms in all; skipped under Reduce Motion)

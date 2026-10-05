@@ -29,7 +29,7 @@ Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils. The colours are fixed; there is no colour setting.
 
-Once a minute the owl blinks (550 ms). When several Menumon mascots are
+Now and then the owl blinks (550 ms). When several Menumon mascots are
 running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp
 (Mac Daddy), Carol (SoundChain), Iguanamous (VPN & DNS), then Armonitor
 (Monitor Lizard), counting only the ones that are running. The blink is

@@ -4,6 +4,8 @@
 
 <p align="center">Part of <strong><a href="https://menumon.nicksmith.software">Menumon</a></strong>.</p>
 
+<p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
+
 ![The Claude Usage menu](screenshots/menu.png)
 
 A macOS menu-bar app for Claude Code: how much of your plan is left, when it
@@ -29,8 +31,6 @@ spontaneous blink slowed about 1.5× so it reads at menu-bar size: the lids fall
 in 140 ms (slow to start, then fast), stay shut for 50 ms, and take 360 ms to
 lift, quickly at first and then settling. The whole blink takes 550 ms. It is
 skipped when Reduce Motion is on. When several Menumon mascots are running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp (Mac Daddy), Carol (SoundChain), Caveepyan (VPN & DNS), then Armonitor (Monitor Lizard), counting only the ones that are running. So the owl blinks on :00, and the others follow it.
-
-![Archimedes the owl blinking](docs/animation.png)
 
 The bars in the menu follow the same green-to-red ramp, each by its own
 percentage, so the weekly bar is always the colour of the pupils. There is no

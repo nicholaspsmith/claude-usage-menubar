@@ -16,29 +16,28 @@ resets, and which agents are running. Built on
 
 ![The menu-bar icon](docs/menubar-icon.png)
 
-The icon is an **owl whose eyelids droop as you use up your 5-hour session
-window** — the one that actually stops your work. Both lids come down together:
-wide open at 0%, half closed at 50%, shut at 100%.
+The icon is Archimedes, an owl:
 
-The **7-day weekly window** is the owl's health. Past a quarter used the whites
-turn a deepening pink, the way a cartoon looks when it badly needs sleep, and
-in the last quarter red veins fade in — barely there at 75%, solid at 100%. The pupils start **dark green**
-(`#005401`) at 0% and redden steadily to **orange-red** (`#FF5401`) at 100%.
-Shut eyes with red pupils means both limits are spent.
+- **Eyelids** — the 5-hour session window. Open at 0%, half closed at 50%,
+  shut at 100%.
+- **Whites of the eyes** — the 7-day weekly window. They turn a deepening pink
+  past 25% used, and red veins fade in over the last quarter.
+- **Pupils** — also the weekly window: dark green (`#005401`) at 0%, reddening
+  to orange-red (`#FF5401`) at 100%.
 
-Once a minute, on the minute, the owl **blinks**. The timing is a human
-spontaneous blink slowed about 1.5× so it reads at menu-bar size: the lids fall
-in 140 ms (slow to start, then fast), stay shut for 50 ms, and take 360 ms to
-lift, quickly at first and then settling. The whole blink takes 550 ms. It is
-skipped when Reduce Motion is on. When several Menumon mascots are running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp (Mac Daddy), Carol (SoundChain), Caveepyan (VPN & DNS), then Armonitor (Monitor Lizard), counting only the ones that are running. So the owl blinks on :00, and the others follow it.
+Shut eyes with red pupils means both limits are spent. The bars in the menu use
+the same green-to-red ramp, each by its own percentage, so the weekly bar
+matches the pupils. The colours are fixed; there is no colour setting.
 
-The bars in the menu follow the same green-to-red ramp, each by its own
-percentage, so the weekly bar is always the colour of the pupils. There is no
-colour to pick: the colours mean something.
+Once a minute the owl blinks (550 ms). When several Menumon mascots are
+running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp
+(Mac Daddy), Carol (SoundChain), Iguanamous (VPN & DNS), then Armonitor
+(Monitor Lizard), counting only the ones that are running. The blink is
+skipped when Reduce Motion is on.
 
-Prefer a plain meter? Pick a shape under Settings ▸ Icon: **Arc**, **Gauge**,
-**Pie** or **Wedge**. Those track the session limit only, coloured by it from
-**cyan** at 0% through blue and magenta to **red** at 100%.
+Settings ▸ Icon also offers plain meters — **Arc**, **Gauge**, **Pie** and
+**Wedge**. These show the session window only, coloured from cyan at 0%
+through blue and magenta to red at 100%.
 
 ## Install
 
@@ -53,106 +52,92 @@ git clone https://github.com/nicholaspsmith/claude-usage-menubar.git ~/Code/clau
 cd ~/Code/claude-usage-menubar && ./install.sh
 ```
 
-`StatusItemKit` must sit **beside** this repo — the package depends on it by
-relative path (`../StatusItemKit`), so a clone somewhere else will not build.
+`StatusItemKit` must sit **beside** this repo: the package depends on it by
+relative path (`../StatusItemKit`).
 
 `install.sh` builds the bundle, symlinks `~/Applications/Claude Usage.app` to
-`build/`, registers Start-at-Login, stops any running copy, and launches the new
-one. Re-run it to update; it is safe to run repeatedly.
+`build/`, offers to turn on Start at Login (when run in a terminal), quits any
+running copy and launches the new one. Re-run it to update.
 
-**Requires** macOS 13+ and Xcode Command Line Tools. Sign in either by having
-Claude Code signed in (`claude auth status` reports `loggedIn: true`) or from
-the app's own menu — see below.
+**Requires** macOS 13+ and Xcode Command Line Tools, plus a Claude login:
+either Claude Code signed in (`claude auth status` reports `loggedIn: true`)
+or the app's own sign-in (below).
 
 ### Start at Login
 
-Toggle it from the menu, or from the shell:
+Toggle it from Settings in the menu, or from the shell:
 
 ```sh
 "$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --login on       # or: off, status
 ```
 
-`install.sh` asks to run this for you (when run in a terminal). Start at Login is `SMAppService.mainApp`, which can only
-register the calling process's own bundle — so nothing outside the app can turn
-it on, and the command has to be the *installed* binary. A bare `--login`, or
-`--login status`, only reports the current state and changes nothing.
+Start at Login is `SMAppService.mainApp`, which can only register the calling
+process's own bundle, so the command must be the *installed* binary. A bare
+`--login`, or `--login status`, only reports the current state.
 
 ## What the menu shows
 
 | Section | Source |
 |---|---|
-| Plan (`Max 20x`, `Pro`) and the 5-hour + 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint |
-| Running Claude Code sessions and whether each is busy — off by default, turn on with Settings ▸ **Show Sessions** | `~/.claude/sessions/*.json` |
+| Plan (`Max 20x`, `Pro`) and the 5-hour and 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint, polled every 60 s |
+| Running Claude Code sessions and whether each is busy (off by default; Settings ▸ **Show Sessions**) | `~/.claude/sessions/*.json` |
 
 ## Signing in
 
-The app reads Claude Code's login when there is one. When there is not — or it
-has lapsed, or you would rather the app kept itself signed in — **Sign In with
-Claude…** (under Settings, or at the top of the menu when the numbers are
-missing) runs the same claude.ai authorisation Claude Code does, from the
-menu bar: the browser opens on the consent page, the app listens on a
-localhost port for it to come back, trades the code for tokens, and reads the
-plan from the profile endpoint. It asks for the `user:profile` scope only —
-enough to read usage, nothing that could run inference or mint API keys.
+The app uses Claude Code's login when there is one. Otherwise — or when it
+has lapsed — **Sign In with Claude…** (under Settings, or at the top of the
+menu when the numbers are missing) runs the same claude.ai OAuth flow Claude
+Code uses: the browser opens on the consent page, the app receives the code on
+a localhost port, exchanges it for tokens, and reads the plan from the profile
+endpoint. It requests the `user:profile` scope only, which can read usage but
+cannot run inference or create API keys.
 
-That login is the app's own. It is stored in its own Keychain item
-(`Claude Usage-credentials`, written and read through `/usr/bin/security` so
-it never prompts), refreshed by the app ten minutes before it lapses, and
-preferred over Claude Code's when both exist. Claude Code's credential is never
-written to or refreshed — refresh tokens rotate, and refreshing the CLI's
-would sign the CLI out. **Sign Out of Claude Usage** forgets the app's own
-login and goes back to reading Claude Code's.
+That login belongs to the app. It is stored in its own Keychain item
+(`Claude Usage-credentials`), refreshed by the app ten minutes before it
+expires, and preferred over Claude Code's when both exist. The app never
+writes or refreshes Claude Code's credential: refresh tokens rotate, so
+refreshing it would sign Claude Code out. **Sign Out of Claude Usage** deletes
+the app's own login and falls back to Claude Code's.
 
-The flow borrows Claude Code's OAuth client id, the way the community tooling
-around Claude Code does; Anthropic could change or restrict it.
+The flow uses Claude Code's OAuth client id, as other community tooling does;
+Anthropic could change or restrict it.
 
 ## The Keychain
 
-The OAuth token lives in the `Claude Code-credentials` Keychain item. Its only
-destination is the `Authorization` header of the usage probe — nothing else
-from the credential store reaches the UI except the plan name.
+Claude Code's token lives in the `Claude Code-credentials` Keychain item. The
+app sends it only in the `Authorization` header of the usage request; the plan
+name is the only other part of the credential shown in the UI.
 
-The secret is read by running `/usr/bin/security find-generic-password`, which
-looks like a detour and is not. Two gates guard that item: the trusted-app ACL,
-which the "Always Allow" prompt adds this app to and which survives, and the
-XARA partition list, which does not. This app is signed with a local identity
-carrying no Team ID, so macOS pins it in that list by CDHash — and every time
-Claude Code saves a refreshed token it does so via `security
-add-generic-password -U`, whose write rebuilds the integrity ACL from scratch:
+Both Keychain items are read and written by running `/usr/bin/security`
+rather than through the Security framework. The app is signed with a local
+identity that has no Team ID, so macOS records it in the item's partition list
+by CDHash. Every time Claude Code saves a refreshed token (`security
+add-generic-password -U`) that list is rebuilt and the app's entry is dropped,
+so a direct Keychain read would prompt for the login password about every
+twelve hours, and again after every rebuild. `/usr/bin/security` sits in the
+`apple-tool:` partition, which survives the rebuild, so it never prompts. A
+successful read is cached in memory until the token nears expiry, so the
+Keychain is read once per token, not once per poll.
 
-```
-SecKeychainItemModifyContent
-[integrity] no previous integrity acl exists; making a new one
-[integrity] ACL partition mismatch: client cdhash:0eb09c86… ACL ("apple-tool:")
-```
+If the read fails, the limits section says why ("Claude Code not signed in on
+this Mac", "Keychain locked", "Keychain access denied"). The sessions section
+keeps working, because it reads local files.
 
-The app's entry is gone, and the next poll prompts for the login password
-again — roughly every twelve hours, whatever the user clicked last time. Each
-rebuild of the app costs another prompt for the same reason.
-
-`/usr/bin/security` is the one caller that clears both gates permanently:
-Claude Code's own write puts it in the ACL, and its partition, `apple-tool:`,
-is the only one left standing after each reset. The successful read is then
-held in memory until the token nears expiry, so the Keychain is touched once
-per token rather than once per sixty-second poll.
-
-If the read fails, the limits section says why — "Not signed in", "Keychain
-locked", "Keychain access denied". Token counts and session state keep working
-either way, because those come from local files.
-
-If limits read **"Sign-in expired"**, either start Claude Code (which refreshes
-its own token) or use **Sign In with Claude…** to give the app a login it can
-refresh itself.
+If the limits read **"Sign-in expired"**, start Claude Code (which refreshes
+its own token) or use **Sign In with Claude…** to give the app a login it
+refreshes itself.
 
 ## Development
 
 ```bash
 swift build
 swift test
+scripts/build-app.sh    # builds build/Claude Usage.app
 ```
 
-`ClaudeUsageCore` holds the parsing and aggregation and has no AppKit
-dependency, so all of it is unit-testable; the app target is the menu and icon.
+`ClaudeUsageCore` holds the parsing, OAuth and credential logic and has no
+AppKit dependency, so it is fully unit-testable; the `ClaudeUsage` target is
+the menu and icon.
 
 ## Releasing
 
@@ -182,7 +167,7 @@ versions of them are made available under the same license.
 
 ## Why not a SwiftBar plugin?
 
-This is a standalone `.app` built on [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit), not a script under a plugin host: no SwiftBar to install, a real AppKit menu instead of rendered stdout, event-driven updates instead of a re-run timer, and an icon that keeps its place in the bar. Session state, reset timers and running agents live in a real `NSMenu` that updates in place, with nothing re-parsed by a shell script on a timer. The full comparison is in [StatusItemKit's README](https://github.com/nicholaspsmith/StatusItemKit#why-not-swiftbar).
+This is a standalone `.app` built on [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit), not a script under a plugin host: no SwiftBar to install, a real AppKit menu instead of rendered stdout, event-driven updates instead of a re-run timer, and an icon that keeps its place in the bar. Limits, reset countdowns and sessions live in a real `NSMenu` that updates in place. The full comparison is in [StatusItemKit's README](https://github.com/nicholaspsmith/StatusItemKit#why-not-swiftbar).
 
 ## The menu-bar suite
 
@@ -194,17 +179,21 @@ colour, and cooperative hiding so no icon strands another.
 | App | What it does |
 |---|---|
 | **Claude Usage** | Claude Code plan limits, resets, and live agent sessions |
-| [Apollo Monitor](https://github.com/nicholaspsmith/apollo-monitor-menubar) | Apollo audio-interface monitor level, plus a mixer-process watchdog |
+| [Apollo Monitor](https://github.com/nicholaspsmith/apollo-monitor-menubar) | Apollo audio-interface monitor level |
 | [Battery Time](https://github.com/nicholaspsmith/battery-time-menubar) | Time remaining, power mode, and 24h usage |
-| [VPN & DNS](https://github.com/nicholaspsmith/vpn-dns-menubar) | A chameleon for Mullvad + Tailscale state, with a DNS watcher |
-| [Mac Daddy](https://github.com/nicholaspsmith/mac-daddy-menubar) | Kills media trackers, trashes stale downloads, reaps hung processes, and sweats as your process count climbs |
+| [VPN & DNS](https://github.com/nicholaspsmith/vpn-dns-menubar) | An iguana for Mullvad + Tailscale state, with a DNS watcher |
+| [Mac Daddy](https://github.com/nicholaspsmith/mac-daddy-menubar) | Kills media trackers, trashes stale downloads, reaps hung processes, watches the UA mixer engine, and sweats as your process count climbs |
 | [KeyLight](https://github.com/nicholaspsmith/keylight-menubar) | Ctrl+brightness keys remapped to keyboard backlight |
+| [Monitor Lizard](https://github.com/nicholaspsmith/monitor-lizard-menubar) | External-monitor brightness, contrast and resolution, Night Shift, and the built-in screen from dimmer than macOS allows to XDR |
+| [Homestead](https://github.com/nicholaspsmith/home-assistant-menubar) | Home Assistant dashboards and device controls in the menu |
+| [SoundChain](https://github.com/nicholaspsmith/soundchain-menubar) | One chain of Audio Unit effects over all system audio |
+| [Menu Crane](https://github.com/nicholaspsmith/menu-crane) | A ⌘Space launcher for apps, arithmetic, unit conversions and emoji |
 | [MacRecorder](https://github.com/nicholaspsmith/MacRecorder) | Screen recording with system audio |
-| [Barn](https://github.com/nicholaspsmith/menubar-barn) | Sunset: macOS 26 and earlier only. Hid a block of status icons by width; on macOS 27 use System Settings ▸ Menu Bar |
+| [Barn](https://github.com/nicholaspsmith/menubar-barn) | macOS 26 and earlier only: hides a block of status icons by width (on macOS 27, use System Settings ▸ Menu Bar) |
 
 | Framework | |
 |---|---|
-| [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit) | Status-item lifecycle, polling, menus, meter icons, the shared Icon picker |
+| [StatusItemKit](https://github.com/nicholaspsmith/StatusItemKit) | Status-item lifecycle, polling, menus, meter and mascot icons, the shared Icon picker |
 | [HotkeyKit](https://github.com/nicholaspsmith/HotkeyKit) | CGEventTap engine for intercepting and remapping global keys |
 
 Install the whole suite on a fresh Mac with

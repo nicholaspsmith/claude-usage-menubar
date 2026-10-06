@@ -204,15 +204,12 @@ final class App: NSObject, NSApplicationDelegate {
         }
 
         if MenuPreferences.showSessions() {
-            menu.addItem(.separator())
-            let busy = snapshot.sessions.filter(\.isBusy).count
-            menu.addItem(header("Sessions   \(snapshot.sessions.count) running, \(busy) busy"))
-            for session in snapshot.sessions.prefix(12) {
-                menu.addItem(disabled("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
-            }
+            sessionItems(snapshot).forEach(menu.addItem)
         }
 
-        menu.addItem(.separator())
+        let afterSessions = NSMenuItem.separator()
+        afterSessions.tag = Self.afterSessionsTag
+        menu.addItem(afterSessions)
         // Sign-in is offered whenever the credential is unusable. It runs the
         // same claude.ai authorisation Claude Code does, from here: the
         // browser opens on the consent page and comes back to the app, and
@@ -226,9 +223,11 @@ final class App: NSObject, NSApplicationDelegate {
         // Everything the user can set lives one level down, so the top level
         // is the numbers, a settings entry, and Quit.
         SettingsMenu.addFooter(to: menu, appName: "Claude Usage", items: { [unowned self] settings in
-            let sessions = self.action("Show Sessions", #selector(self.toggleSessions))
-            sessions.state = MenuPreferences.showSessions() ? .on : .off
-            settings.addItem(sessions)
+            // Keep-open checkbox: the sessions section appears or goes in the
+            // menu behind it while Settings stays up.
+            settings.addItem(ToggleMenuItem.make(title: "Show Sessions", isOn: MenuPreferences.showSessions()) { [weak self] on in
+                self?.setShowSessions(on)
+            })
             // While the numbers are fine the sign-in lives down here: a login
             // of the app's own is what lets it stay signed in without the CLI.
             // Only a login this app made is its to forget; Claude Code's stays.
@@ -272,13 +271,34 @@ final class App: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    /// Flips the sessions section and rebuilds the menu under the cursor if
-    /// it is still up, so the rows appear or go without reopening it.
-    @objc private func toggleSessions() {
-        MenuPreferences.setShowSessions(!MenuPreferences.showSessions())
-        if let menu = liveMenu {
-            menu.removeAllItems()
-            buildMenu(menu)
+    /// Tags for the sessions section's rows and the separator after it, so the
+    /// section can be added or removed in place while the menu is up.
+    private static let sessionsTag = 0x5E55
+    private static let afterSessionsTag = 0x5E56
+
+    /// The sessions section: a separator, a header, one row per session.
+    private func sessionItems(_ snapshot: Snapshot) -> [NSMenuItem] {
+        let busy = snapshot.sessions.filter(\.isBusy).count
+        var items: [NSMenuItem] = [.separator(), header("Sessions   \(snapshot.sessions.count) running, \(busy) busy")]
+        for session in snapshot.sessions.prefix(12) {
+            items.append(disabled("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
+        }
+        items.forEach { $0.tag = Self.sessionsTag }
+        return items
+    }
+
+    /// Shows or hides the sessions section. If the menu is still up, the rows
+    /// appear or go in place — not a rebuild, which would pull the Settings
+    /// submenu (where the checkbox is) out from under the cursor.
+    private func setShowSessions(_ on: Bool) {
+        MenuPreferences.setShowSessions(on)
+        guard let menu = liveMenu else { return }
+        for item in menu.items where item.tag == Self.sessionsTag { menu.removeItem(item) }
+        let snapshot = latest
+        guard on,
+              let anchor = menu.items.firstIndex(where: { $0.tag == Self.afterSessionsTag }) else { return }
+        for (offset, item) in sessionItems(snapshot).enumerated() {
+            menu.insertItem(item, at: anchor + offset)
         }
     }
 

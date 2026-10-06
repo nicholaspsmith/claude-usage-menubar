@@ -225,31 +225,25 @@ final class App: NSObject, NSApplicationDelegate {
 
         // Everything the user can set lives one level down, so the top level
         // is the numbers, a settings entry, and Quit.
-        let settings = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
-        let settingsMenu = NSMenu()
-        settingsMenu.addItem(appearanceMenu.menuItem())
-        let sessions = action("Show Sessions", #selector(toggleSessions))
-        sessions.state = MenuPreferences.showSessions() ? .on : .off
-        settingsMenu.addItem(sessions)
-        let login = action("Start at Login", #selector(toggleLogin))
-        login.state = LoginItem.isEnabled ? .on : .off
-        settingsMenu.addItem(login)
-        // While the numbers are fine the sign-in lives down here: a login of
-        // the app's own is what lets it stay signed in without the CLI. Only
-        // a login this app made is its to forget; Claude Code's stays.
-        settingsMenu.addItem(.separator())
-        if !signingIn {
-            settingsMenu.addItem(action(OwnLogin.exists ? "Sign In Again…" : "Sign In with Claude…", #selector(signIn)))
-        }
-        if OwnLogin.exists {
-            settingsMenu.addItem(action("Sign Out of Claude Usage", #selector(signOut)))
-        }
-        settings.submenu = settingsMenu
-        menu.addItem(settings)
-
-        menu.addItem(.separator())
-        menu.addItem(AppVersion.menuItem())
-        menu.addItem(action("Quit", #selector(quit)))
+        SettingsMenu.addFooter(to: menu, appName: "Claude Usage", items: { [unowned self] settings in
+            let sessions = self.action("Show Sessions", #selector(self.toggleSessions))
+            sessions.state = MenuPreferences.showSessions() ? .on : .off
+            settings.addItem(sessions)
+            // While the numbers are fine the sign-in lives down here: a login
+            // of the app's own is what lets it stay signed in without the CLI.
+            // Only a login this app made is its to forget; Claude Code's stays.
+            var account: [NSMenuItem] = []
+            if !self.signingIn {
+                account.append(self.action(OwnLogin.exists ? "Sign In Again…" : "Sign In with Claude…", #selector(self.signIn)))
+            }
+            if OwnLogin.exists {
+                account.append(self.action("Sign Out of Claude Usage", #selector(self.signOut)))
+            }
+            if !account.isEmpty {
+                settings.addItem(.separator())
+                account.forEach(settings.addItem)
+            }
+        }, appearance: appearanceMenu)
     }
 
     // MARK: - Menu item helpers
@@ -277,8 +271,6 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Actions
-
-    @objc private func toggleLogin() { LoginItem.toggle() }
 
     /// Flips the sessions section and rebuilds the menu under the cursor if
     /// it is still up, so the rows appear or go without reopening it.
@@ -353,7 +345,6 @@ final class App: NSObject, NSApplicationDelegate {
         poll(force: true)
     }
 
-    @objc private func quit() { NSApp.terminate(nil) }
 }
 
 // `install.sh` registers Start-at-Login by running this binary, because

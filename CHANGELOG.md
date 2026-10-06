@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.5.1] - 2026-10-05
+
+- New app icon: Archimedes as he looks in the menu bar
+
 ## [1.5.0] - 2026-10-05
 
 - The menu ends with the standard Menumon **Settings ▸** submenu and **Quit Claude Usage** (⌘Q): the version moved into Settings, below Show Sessions, sign-in, Icon and Start at Login

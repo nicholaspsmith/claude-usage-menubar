@@ -65,7 +65,7 @@ or the app's own sign-in (below).
 
 ### Start at Login
 
-Toggle it from Settings in the menu, or from the shell:
+Toggle it from Settings ▸ Start at Login in the menu, or from the shell:
 
 ```sh
 "$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --login on       # or: off, status
@@ -82,6 +82,9 @@ process's own bundle, so the command must be the *installed* binary. A bare
 | Plan (`Max 20x`, `Pro`) and the 5-hour and 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint, polled every 60 s |
 | Running Claude Code sessions and whether each is busy (off by default; Settings ▸ **Show Sessions**) | `~/.claude/sessions/*.json` |
 
+Below the numbers are **Settings ▸** and **Quit Claude Usage** (⌘Q). Settings
+holds Show Sessions, the sign-in rows, Icon, Start at Login and the version.
+
 ## Signing in
 
 The app uses Claude Code's login when there is one. Otherwise — or when it
@@ -96,7 +99,7 @@ That login belongs to the app. It is stored in its own Keychain item
 (`Claude Usage-credentials`), refreshed by the app ten minutes before it
 expires, and preferred over Claude Code's when both exist. The app never
 writes or refreshes Claude Code's credential: refresh tokens rotate, so
-refreshing it would sign Claude Code out. **Sign Out of Claude Usage** deletes
+refreshing it would sign Claude Code out. Settings ▸ **Sign Out of Claude Usage** deletes
 the app's own login and falls back to Claude Code's.
 
 The flow uses Claude Code's OAuth client id, as other community tooling does;

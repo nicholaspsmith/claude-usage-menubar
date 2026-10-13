@@ -35,6 +35,16 @@ running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp
 (Monitor Lizard), counting only the ones that are running. The blink is
 skipped when Reduce Motion is on.
 
+Spend the whole weekly allowance with more than a day left before it resets
+and Archimedes has a word: a speech bubble just under the menu bar, pointing
+up at his beak, says **"Dude…go outside!"**. It bounces in over 2 seconds,
+stays 5, fades out, and comes back once a minute until you click it. Click it
+and he shuts his eyes, and keeps them shut (no blinking, whatever the session
+window says) until the weekly window resets. Owl icon only; under Reduce
+Motion it fades in without the bounce. To see it without spending a week,
+quit the app and run `open -a "Claude Usage" --args --go-outside-preview`: it
+speaks once, a moment after launch, and clicking that one only closes it.
+
 Settings ▸ Icon also offers plain meters — **Arc**, **Gauge**, **Pie** and
 **Wedge**. These show the session window only, coloured from cyan at 0%
 through blue and magenta to red at 100%.

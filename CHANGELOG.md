@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.9.0] - 2026-10-13
+
+- When the weekly allowance is spent with more than a day left before it resets, Archimedes says "Dude…go outside!" in a speech bubble under his beak, once a minute until you click it; then he shuts his eyes until the week resets
+
 ## [1.8.0] - 2026-10-09
 
 - No user-visible changes.

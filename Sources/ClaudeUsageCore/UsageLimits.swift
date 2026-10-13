@@ -12,6 +12,9 @@ import Foundation
 /// see `UsageLimits.parse(payload:)` for why that needs deciding per payload
 /// rather than per value.
 public struct UsageLimit: Equatable {
+    public static let sessionLabel = "Session (5-hour)"
+    public static let weeklyLabel = "Weekly (7-day)"
+
     public let label: String
     public let fraction: Double
     public let resetsAt: Date?
@@ -56,12 +59,12 @@ public enum UsageLimits {
 
         var limits: [UsageLimit] = []
         if let session, let fraction = normalize(session["utilization"], percentScale: percentScale) {
-            limits.append(UsageLimit(label: "Session (5-hour)",
+            limits.append(UsageLimit(label: UsageLimit.sessionLabel,
                                      fraction: fraction,
                                      resetsAt: resetDate(session["resets_at"])))
         }
         if let weekly, let fraction = normalize(weekly["utilization"], percentScale: percentScale) {
-            limits.append(UsageLimit(label: "Weekly (7-day)",
+            limits.append(UsageLimit(label: UsageLimit.weeklyLabel,
                                      fraction: fraction,
                                      resetsAt: resetDate(weekly["resets_at"])))
         }

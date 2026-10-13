@@ -66,6 +66,11 @@ final class App: NSObject, NSApplicationDelegate {
     /// How shut the lids are mid-blink, layered over the session droop.
     private var blinkClosure: CGFloat = 0
 
+    /// "Dude…go outside!" (`GoOutside`): checked on the minute, shown under
+    /// the owl's beak until clicked.
+    private let bubble = SpeechBubble()
+    private var bubbleTimer: Timer?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         controller = StatusItemController(
             pollInterval: 60,
@@ -90,11 +95,56 @@ final class App: NSObject, NSApplicationDelegate {
         controller.start()
 
         minuteCue = MinuteCue { [weak self] in
-            // Only the owl has lids.
-            guard let self, self.appearance.style == .character else { return }
+            // Only the owl has lids, and shut ones don't blink.
+            guard let self, self.appearance.style == .character, !GoOutside.eyesShut(now: Date()) else { return }
             self.blinkAnimation.start()
         }
         minuteCue.start()
+
+        bubble.onClick = { [weak self] in self?.bubbleClicked() }
+        scheduleBubble()
+        // `--go-outside-preview`: say it once, a moment after launch, whatever the usage.
+        if CommandLine.arguments.contains("--go-outside-preview") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.showBubble(preview: true) }
+        }
+    }
+
+    // MARK: - Go outside
+
+    /// Once a minute, on the minute, with Archimedes's turn in the cue. Its
+    /// own timer rather than `MinuteCue`'s, which falls silent under Reduce
+    /// Motion: the bubble still has something to say then, without the bounce.
+    private func scheduleBubble() {
+        bubbleTimer?.invalidate()
+        let t = Timer(fire: MinuteCue.nextMinute(after: Date()), interval: 0, repeats: false) { [weak self] _ in
+            self?.showBubble(preview: false)
+            self?.scheduleBubble()
+        }
+        RunLoop.main.add(t, forMode: .common)
+        bubbleTimer = t
+    }
+
+    private var previewing = false
+
+    private func showBubble(preview: Bool) {
+        guard appearance.style == .character, !bubble.isShowing else { return }
+        guard preview || GoOutside.shouldShow(GoOutside.weekly(in: latest.limits.limits), now: Date()) else { return }
+        guard let button = controller.button, let window = button.window, let screen = window.screen else { return }
+        let slot = window.convertToScreen(button.convert(button.bounds, to: nil))
+        guard slot.width >= 8 else { return }   // stepped aside for a reveal: no owl to speak
+        // Under his beak, which is the owl's bottom middle, at the bar's bottom
+        // edge: the top of the visible frame (the button is shorter than the bar).
+        let tip = NSPoint(x: slot.midX, y: min(slot.minY, screen.visibleFrame.maxY))
+        previewing = preview
+        bubble.show(text: GoOutside.text, tip: tip, on: screen)
+    }
+
+    /// The bubble was clicked: he shuts his eyes until the week resets.
+    private func bubbleClicked() {
+        guard !previewing, let weekly = GoOutside.weekly(in: latest.limits.limits) else { return }
+        GoOutside.dismiss(weekly)
+        App.log("go outside: clicked; eyes shut until \(weekly.resetsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "?")")
+        render(latest)
     }
 
     /// A one-line breadcrumb per poll. A menu-bar app has nowhere to print a
@@ -164,8 +214,9 @@ final class App: NSObject, NSApplicationDelegate {
             // session — open at 0, shut at 100% — and the weekly window is its
             // health: the whites go bloodshot and the pupils run green to red.
             // A blink closes whatever the session has left open.
-            let weekly = snapshot.limits.limits.dropFirst().first
-            let lids = fraction + (1 - fraction) * blinkClosure
+            let weekly = GoOutside.weekly(in: snapshot.limits.limits)
+            // Shut, and staying shut, after "go outside" was clicked this week.
+            let lids = GoOutside.eyesShut(now: Date()) ? 1 : fraction + (1 - fraction) * blinkClosure
             controller.setIcon(CharacterIcon.owl(session: lids, weekly: CGFloat(weekly?.fraction ?? 0)))
             return
         }

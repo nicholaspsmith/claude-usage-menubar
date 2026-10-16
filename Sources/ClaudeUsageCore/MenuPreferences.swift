@@ -20,4 +20,17 @@ public enum MenuPreferences {
     public static func setShowSessions(_ on: Bool, in defaults: UserDefaults = .standard) {
         defaults.set(on, forKey: showSessionsKey)
     }
+
+    public static let eyePerWindowKey = "OwlEyePerWindow"
+
+    /// Whether the owl gives each window an eye of its own — the left for the
+    /// session, the right for the week — instead of both lids following the
+    /// session and both eyes' colours the week. Off by default.
+    public static func eyePerWindow(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: eyePerWindowKey)
+    }
+
+    public static func setEyePerWindow(_ on: Bool, in defaults: UserDefaults = .standard) {
+        defaults.set(on, forKey: eyePerWindowKey)
+    }
 }

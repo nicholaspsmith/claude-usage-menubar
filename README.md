@@ -32,7 +32,15 @@ percentage. Blinks and the go-outside shut-eye apply to both eyes either way.
 
 Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
-matches the pupils. The colours are fixed; there is no colour setting.
+matches the pupils.
+
+Prefer a colour per window? Settings ▸ Icon lists **Usage (Green → Red)**, the
+default described above, then four pairs: **Grape & Mint**, **Sky &
+Tangerine**, **Lime & Fuchsia** and **Rose & Cobalt**. With a pair chosen the
+session bar wears the first colour and the weekly bar the second, and so do
+the pupils: with One Eye per Window the left pupil is the session colour and
+the right the weekly; otherwise both pupils carry the week, so both are the
+weekly colour. The whites still go pink and veined with usage.
 
 Now and then the owl blinks (550 ms). When several Menumon mascots are
 running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp
@@ -52,7 +60,8 @@ speaks once, a moment after launch, and clicking that one only closes it.
 
 Settings ▸ Icon also offers plain meters — **Arc**, **Gauge**, **Pie** and
 **Wedge**. These show the session window only, coloured from cyan at 0%
-through blue and magenta to red at 100%.
+through blue and magenta to red at 100%, or in the session colour of a chosen
+pair.
 
 ## Install
 

@@ -25,6 +25,11 @@ The icon is Archimedes, an owl:
 - **Pupils** — also the weekly window: dark green (`#005401`) at 0%, reddening
   to orange-red (`#FF5401`) at 100%.
 
+Settings ▸ **One Eye per Window** switches to giving each window an eye of
+its own: the left eye is the session, the right the week. Each eye's lid
+closes, its white goes pink and its pupil reddens with its own window's
+percentage. Blinks and the go-outside shut-eye apply to both eyes either way.
+
 Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils. The colours are fixed; there is no colour setting.

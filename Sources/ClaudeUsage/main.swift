@@ -31,7 +31,8 @@ final class App: NSObject, NSApplicationDelegate {
 
     /// Shape, user-chosen, from StatusItemKit. The geometric meters are always
     /// fed the session fraction — the five-hour window is the one that actually
-    /// stops work — while the owl shows both windows at once.
+    /// stops work — while the owl shows both windows at once, either way
+    /// round (`MenuPreferences.eyePerWindow`).
     /// There is no colour to choose: the owl's pupils and the menu's bars are
     /// `MeterColor.health` of a fraction, dark green (#005401) when a window is
     /// fresh, reddening to #FF5401 when it is spent; the geometric meters use `MeterColor.usage`, cyan to red.
@@ -210,14 +211,21 @@ final class App: NSObject, NSApplicationDelegate {
         let session = snapshot.limits.limits.first
         let fraction = CGFloat(session?.fraction ?? 0)
         if appearance.style == .character {
-            // The owl shows both windows at once. Its eyelids droop with the
-            // session — open at 0, shut at 100% — and the weekly window is its
-            // health: the whites go bloodshot and the pupils run green to red.
-            // A blink closes whatever the session has left open.
-            let weekly = GoOutside.weekly(in: snapshot.limits.limits)
+            // The owl shows both windows at once. By default its eyelids droop
+            // with the session — open at 0, shut at 100% — and the weekly
+            // window is its health: the whites go bloodshot and the pupils run
+            // green to red. With Settings ▸ One Eye per Window each eye is its
+            // own window instead, the left the session and the right the week.
+            // A blink closes whatever the lids have left open.
+            let weekly = CGFloat(GoOutside.weekly(in: snapshot.limits.limits)?.fraction ?? 0)
             // Shut, and staying shut, after "go outside" was clicked this week.
-            let lids = GoOutside.eyesShut(now: Date()) ? 1 : fraction + (1 - fraction) * blinkClosure
-            controller.setIcon(CharacterIcon.owl(session: lids, weekly: CGFloat(weekly?.fraction ?? 0)))
+            let closure = GoOutside.eyesShut(now: Date()) ? 1 : blinkClosure
+            if MenuPreferences.eyePerWindow() {
+                controller.setIcon(CharacterIcon.owl(leftEye: fraction, rightEye: weekly, closure: closure))
+            } else {
+                let lids = fraction + (1 - fraction) * closure
+                controller.setIcon(CharacterIcon.owl(session: lids, weekly: weekly))
+            }
             return
         }
         let color = session == nil ? NSColor.secondaryLabelColor : MeterColor.usage(fraction)
@@ -278,6 +286,11 @@ final class App: NSObject, NSApplicationDelegate {
             // menu behind it while Settings stays up.
             settings.addItem(ToggleMenuItem.make(title: "Show Sessions", isOn: MenuPreferences.showSessions()) { [weak self] on in
                 self?.setShowSessions(on)
+            })
+            // Only the owl has eyes; the meters show the session either way.
+            settings.addItem(ToggleMenuItem.make(title: "One Eye per Window", isOn: MenuPreferences.eyePerWindow()) { [weak self] on in
+                MenuPreferences.setEyePerWindow(on)
+                if let self { self.render(self.latest) }
             })
             // While the numbers are fine the sign-in lives down here: a login
             // of the app's own is what lets it stay signed in without the CLI.

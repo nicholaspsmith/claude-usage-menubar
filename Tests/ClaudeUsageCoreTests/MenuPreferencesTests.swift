@@ -24,4 +24,14 @@ final class MenuPreferencesTests: XCTestCase {
         MenuPreferences.setShowSessions(false, in: d)
         XCTAssertFalse(MenuPreferences.showSessions(in: d))
     }
+
+    // The owl keeps its both-eyes-on-the-session look until asked otherwise.
+    func testEyePerWindowOffByDefaultAndRoundTrips() {
+        let d = defaults()
+        XCTAssertFalse(MenuPreferences.eyePerWindow(in: d))
+        MenuPreferences.setEyePerWindow(true, in: d)
+        XCTAssertTrue(MenuPreferences.eyePerWindow(in: d))
+        MenuPreferences.setEyePerWindow(false, in: d)
+        XCTAssertFalse(MenuPreferences.eyePerWindow(in: d))
+    }
 }

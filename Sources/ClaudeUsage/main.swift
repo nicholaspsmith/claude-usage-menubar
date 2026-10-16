@@ -43,7 +43,7 @@ final class App: NSObject, NSApplicationDelegate {
     private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
                                                      styles: MeterStyle.proportional + [.character],
                                                      characterTitle: "Owl",
-                                                     colorItems: { [weak self] menu in self?.addColorPairs(to: menu) }) { [weak self] in
+                                                     offersColour: false) { [weak self] in
         guard let self else { return }
         self.render(self.latest)
     }
@@ -304,6 +304,14 @@ final class App: NSObject, NSApplicationDelegate {
                 MenuPreferences.setEyePerWindow(on)
                 if let self { self.render(self.latest) }
             })
+            // Icon and Color side by side, rather than the kit's usual spot
+            // for Icon beside Start at Login, so the two pickers read as a pair.
+            settings.addItem(.separator())
+            settings.addItem(self.appearanceMenu.menuItem())
+            let color = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
+            color.submenu = NSMenu(title: "Color")
+            self.addColorPairs(to: color.submenu!)
+            settings.addItem(color)
             // While the numbers are fine the sign-in lives down here: a login
             // of the app's own is what lets it stay signed in without the CLI.
             // Only a login this app made is its to forget; Claude Code's stays.
@@ -318,15 +326,15 @@ final class App: NSObject, NSApplicationDelegate {
                 settings.addItem(.separator())
                 account.forEach(settings.addItem)
             }
-        }, appearance: appearanceMenu)
+        })
     }
 
     // MARK: - Colour pairs
 
     private static func color(_ hex: String) -> NSColor { MeterColor.color(fromHex: hex) ?? .systemGray }
 
-    /// The colour block of the Icon submenu: the usage ramp, then one row per
-    /// pair with a two-dot swatch (session left, weekly right).
+    /// The Color submenu: the usage ramp, then one row per pair with a two-dot
+    /// swatch (session left, weekly right).
     private func addColorPairs(to menu: NSMenu) {
         let ramp = NSMenuItem(title: "Usage (Green → Red)", action: #selector(pickColorPair(_:)), keyEquivalent: "")
         ramp.target = self

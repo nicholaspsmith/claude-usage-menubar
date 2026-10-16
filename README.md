@@ -34,7 +34,7 @@ Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils.
 
-Prefer a colour per window? Settings ▸ Icon lists **Usage (Green → Red)**, the
+Prefer a colour per window? Settings ▸ Color lists **Usage (Green → Red)**, the
 default described above, then four pairs: **Grape & Mint**, **Sky &
 Tangerine**, **Lime & Fuchsia** and **Rose & Cobalt**. With a pair chosen the
 session bar wears the first colour and the weekly bar the second, and so do

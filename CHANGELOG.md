@@ -11,7 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 ## [1.13.0] - 2026-10-15
 
 - Settings ▸ One Eye per Window: the owl's left eye shows the session window and its right eye the weekly window, each eye's lid and colours following its own percentage. Off by default, which keeps both lids on the session and both eyes' colours on the week
-- Colour pairs are back: Settings ▸ Icon offers Grape & Mint, Sky & Tangerine, Lime & Fuchsia and Rose & Cobalt alongside the default Usage (Green → Red). A pair gives the session and weekly bars, the plain meters and the owl's pupils a fixed colour per window; the whites still redden with usage
+- Colour pairs are back: Settings ▸ Color offers Grape & Mint, Sky & Tangerine, Lime & Fuchsia and Rose & Cobalt alongside the default Usage (Green → Red). A pair gives the session and weekly bars, the plain meters and the owl's pupils a fixed colour per window; the whites still redden with usage
 - Needs StatusItemKit 0.33.0
 
 ## [1.12.0] - 2026-10-15

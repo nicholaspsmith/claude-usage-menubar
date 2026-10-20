@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.14.0] - 2026-10-20
+
+- Menu bar icons now update more smoothly with significantly reduced CPU usage during animations.
+
 ## [1.13.0] - 2026-10-15
 
 - Settings ▸ One Eye per Window: the owl's left eye shows the session window and its right eye the weekly window, each eye's lid and colours following its own percentage. Off by default, which keeps both lids on the session and both eyes' colours on the week

@@ -34,7 +34,7 @@ Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils.
 
-Prefer a colour per window? Settings ▸ Color lists **Usage (Green → Red)**, the
+Prefer a colour per window? **Color ▸** (in the menu, below Icon) lists **Usage (Green → Red)**, the
 default described above, then four pairs: **Grape & Mint**, **Sky &
 Tangerine**, **Lime & Fuchsia** and **Rose & Cobalt**. With a pair chosen the
 session bar wears the first colour and the weekly bar the second, and so do
@@ -58,7 +58,7 @@ Motion it fades in without the bounce. To see it without spending a week,
 quit the app and run `open -a "Claude Usage" --args --go-outside-preview`: it
 speaks once, a moment after launch, and clicking that one only closes it.
 
-Settings ▸ Icon also offers plain meters — **Arc**, **Gauge**, **Pie** and
+**Icon ▸** also offers plain meters — **Arc**, **Gauge**, **Pie** and
 **Wedge**. These show the session window only, coloured from cyan at 0%
 through blue and magenta to red at 100%, or in the session colour of a chosen
 pair.
@@ -106,8 +106,9 @@ process's own bundle, so the command must be the *installed* binary. A bare
 | Plan (`Max 20x`, `Pro`) and the 5-hour and 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint, polled every 60 s |
 | Running Claude Code sessions and whether each is busy (off by default; Settings ▸ **Show Sessions**) | `~/.claude/sessions/*.json` |
 
-Below the numbers are **Settings ▸** and **Quit Claude Usage** (⌘Q). Settings
-holds Show Sessions, the sign-in rows, Icon, Start at Login and the version.
+Below the numbers are **Settings ▸**, **Icon ▸**, **Color ▸** and **Quit
+Claude Usage** (⌘Q). Settings holds Show Sessions, One Eye per Window, the
+sign-in rows, Start at Login and the version.
 
 ## Signing in
 

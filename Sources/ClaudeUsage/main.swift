@@ -304,14 +304,6 @@ final class App: NSObject, NSApplicationDelegate {
                 MenuPreferences.setEyePerWindow(on)
                 if let self { self.render(self.latest) }
             })
-            // Icon and Color side by side, rather than the kit's usual spot
-            // for Icon beside Start at Login, so the two pickers read as a pair.
-            settings.addItem(.separator())
-            settings.addItem(self.appearanceMenu.menuItem())
-            let color = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
-            color.submenu = NSMenu(title: "Color")
-            self.addColorPairs(to: color.submenu!)
-            settings.addItem(color)
             // While the numbers are fine the sign-in lives down here: a login
             // of the app's own is what lets it stay signed in without the CLI.
             // Only a login this app made is its to forget; Claude Code's stays.
@@ -326,6 +318,14 @@ final class App: NSObject, NSApplicationDelegate {
                 settings.addItem(.separator())
                 account.forEach(settings.addItem)
             }
+        }, belowSettings: { [unowned self] menu in
+            // Icon and Color side by side in the main menu, right below
+            // Settings, so the two pickers read as a pair.
+            menu.addItem(self.appearanceMenu.menuItem())
+            let color = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
+            color.submenu = NSMenu(title: "Color")
+            self.addColorPairs(to: color.submenu!)
+            menu.addItem(color)
         })
     }
 

@@ -8,6 +8,15 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.19.0] - 2026-11-03
+
+- The status dot in the keep-open menu now aligns with other items instead of being pushed to the right.
+- Long menu rows with status dots are no longer clipped at the end.
+- The Settings submenu has been replaced by a standard Preferences window (⌘,).
+- Selecting an option in the keep-open menu no longer closes the menu.
+- Menu sections can now be folded away using a chevron heading.
+- Read-only menu rows are now always displayed in grey.
+
 ## [1.18.0] - 2026-11-03
 
 - Settings move into a Preferences window (menu ▸ Preferences…, ⌘,), the same one every Menumon app has: General (Start at Login, Show Sessions), Icon (the shapes as tiles drawn as in the bar, and One Eye per Window), Color (Usage or a pair) and Account (sign in, sign out), with the version at the bottom. Esc or ⌘W closes it. The Settings, Icon and Color submenus are gone; your choices carry over.

@@ -10,10 +10,12 @@ Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 
 ## [1.19.0] - 2026-11-03
 
-- Long menu rows with a status dot and title are no longer clipped at the end.
-- The Settings submenu has been replaced by a standard Preferences window (⌘,) with a grouped form layout.
-- Menus now stay open when selecting options (except for Quit and "…" items), and sections can be folded to hide rows.
-- Read-only menu rows are now always displayed in grey text.
+- The status dot in the keep-open menu now aligns with other items instead of being pushed to the right.
+- Long menu rows with status dots are no longer clipped at the end.
+- The Settings submenu has been replaced by a standard Preferences window (⌘,).
+- Selecting an option in the keep-open menu no longer closes the menu.
+- Menu sections can now be folded away using a chevron heading.
+- Read-only menu rows are now always displayed in grey.
 
 ## [1.18.0] - 2026-11-03
 

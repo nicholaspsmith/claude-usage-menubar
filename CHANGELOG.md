@@ -10,10 +10,10 @@ Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 
 ## [1.19.0] - 2026-11-03
 
-- Preferences are now accessed via a dedicated window (⌘,) instead of a submenu, featuring a cleaner layout with a version number at the bottom.
-- Menus now stay open when you select an option, allowing you to make multiple choices without reopening the menu.
-- Menu sections can now be collapsed and expanded using a chevron icon to reduce clutter.
-- Read-only information rows in the menu are now displayed in grey text to distinguish them from actionable items.
+- Long menu rows with a status dot and title are no longer clipped at the end.
+- The Settings submenu has been replaced by a standard Preferences window (⌘,) with a grouped form layout.
+- Menus now stay open when selecting options (except for Quit and "…" items), and sections can be folded to hide rows.
+- Read-only menu rows are now always displayed in grey text.
 
 ## [1.18.0] - 2026-11-03
 

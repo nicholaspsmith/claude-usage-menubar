@@ -9,7 +9,7 @@ import XCTest
 
 final class MenuPreferencesTests: XCTestCase {
     private func defaults() -> UserDefaults {
-        UserDefaults(suiteName: "MenuPreferencesTests-\(UUID().uuidString)")!
+        scratchDefaults("MenuPreferencesTests")
     }
 
     // The sessions list is opt-in: a fresh install shows limits only.

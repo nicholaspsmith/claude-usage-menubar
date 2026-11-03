@@ -9,7 +9,7 @@ import XCTest
 
 final class ColorPairTests: XCTestCase {
     private func defaults() -> UserDefaults {
-        UserDefaults(suiteName: "ColorPairTests-\(UUID().uuidString)")!
+        scratchDefaults("ColorPairTests")
     }
 
     // The whole point of a pair is that the two windows can be told apart.

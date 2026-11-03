@@ -14,7 +14,7 @@ final class GoOutsideTests: XCTestCase {
         UsageLimit(label: UsageLimit.weeklyLabel, fraction: fraction, resetsAt: left.map { now.addingTimeInterval($0) })
     }
     var defaults: UserDefaults!
-    override func setUp() { defaults = UserDefaults(suiteName: "GoOutsideTests-\(UUID().uuidString)")! }
+    override func setUp() { defaults = scratchDefaults("GoOutsideTests") }
 
     // MARK: When it is due
 
@@ -88,7 +88,7 @@ final class GoOutsideTests: XCTestCase {
         let w = weekly(1, left: 72 * hour)
         GoOutside.dismiss(w, in: defaults)
         XCTAssertFalse(GoOutside.shouldShow(w, now: now, in: defaults))
-        XCTAssertTrue(GoOutside.shouldShow(w, now: now, in: UserDefaults(suiteName: "GoOutsideTests-\(UUID().uuidString)")!))
+        XCTAssertTrue(GoOutside.shouldShow(w, now: now, in: scratchDefaults("GoOutsideTests")))
     }
 
     func testTheNextSpentWeekAsksAgain() {

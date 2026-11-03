@@ -8,6 +8,13 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.19.0] - 2026-11-03
+
+- Preferences are now accessed via a dedicated window (⌘,) instead of a submenu, featuring a cleaner layout with a version number at the bottom.
+- Menus now stay open when you select an option, allowing you to make multiple choices without reopening the menu.
+- Menu sections can now be collapsed and expanded using a chevron icon to reduce clutter.
+- Read-only information rows in the menu are now displayed in grey text to distinguish them from actionable items.
+
 ## [1.18.0] - 2026-11-03
 
 - Settings move into a Preferences window (menu ▸ Preferences…, ⌘,), the same one every Menumon app has: General (Start at Login, Show Sessions), Icon (the shapes as tiles drawn as in the bar, and One Eye per Window), Color (Usage or a pair) and Account (sign in, sign out), with the version at the bottom. Esc or ⌘W closes it. The Settings, Icon and Color submenus are gone; your choices carry over.

@@ -8,6 +8,10 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.17.1] - 2026-11-02
+
+- The Apollo Monitor icon now displays your usage level in grey when it cannot be updated (e.g., due to missing permissions or connectivity issues), instead of appearing completely dark.
+
 ## [1.17.0] - 2026-11-02
 
 - No user-visible changes.

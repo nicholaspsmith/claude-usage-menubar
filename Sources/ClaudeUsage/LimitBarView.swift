@@ -8,7 +8,9 @@ import AppKit
 import ClaudeUsageCore
 import StatusItemKit
 
-/// One allowance rendered as a labelled progress bar.
+/// One allowance rendered as a labelled progress bar. Read-only, so its
+/// labels draw in the menu's disabled grey; the percentage and the bar keep
+/// their colour, which is the number's.
 ///
 /// Stretches with the menu, sharing HeaderView's padding so the percentage
 /// column and the refresh glyph land on the same right margin.
@@ -34,7 +36,7 @@ final class LimitBarView: NSView {
 
         name = NSTextField(labelWithString: limit.label)
         name.font = labelFont
-        name.textColor = .labelColor
+        name.textColor = .disabledControlTextColor
 
         percent = NSTextField(labelWithString: LimitRow.percentText(limit))
         percent.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize - 1, weight: .semibold)
@@ -47,7 +49,7 @@ final class LimitBarView: NSView {
         } else {
             let field = NSTextField(labelWithString: resetText)
             field.font = detailFont
-            field.textColor = .secondaryLabelColor
+            field.textColor = .disabledControlTextColor
             detail = field
         }
 

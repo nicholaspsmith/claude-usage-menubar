@@ -8,6 +8,12 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.18.0] - 2026-11-03
+
+- Settings move into a Preferences window (menu ▸ Preferences…, ⌘,), the same one every Menumon app has: General (Start at Login, Show Sessions), Icon (the shapes as tiles drawn as in the bar, and One Eye per Window), Color (Usage or a pair) and Account (sign in, sign out), with the version at the bottom. Esc or ⌘W closes it. The Settings, Icon and Color submenus are gone; your choices carry over.
+- The menu now ends with Preferences… and Quit Claude Usage.
+- Read-only rows (the usage bars' labels and reset times, the status line, the sessions list) draw grey, so nothing you can't click looks clickable.
+
 ## [1.17.1] - 2026-11-02
 
 - The Apollo Monitor icon now displays your usage level in grey when it cannot be updated (e.g., due to missing permissions or connectivity issues), instead of appearing completely dark.

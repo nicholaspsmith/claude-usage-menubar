@@ -6,6 +6,8 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
+**Version 1.18.0** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+
 ![The Claude Usage menu](screenshots/menu.png)
 
 A macOS menu-bar app for Claude Code: how much of your plan is left, when it
@@ -25,7 +27,7 @@ The icon is Archimedes, an owl:
 - **Pupils** — also the weekly window: dark green (`#005401`) at 0%, reddening
   to orange-red (`#FF5401`) at 100%.
 
-Settings ▸ **One Eye per Window** switches to giving each window an eye of
+**One Eye per Window** (Preferences, under Icon) gives each window an eye of
 its own: the left eye is the session, the right the week. Each eye's lid
 closes, its white goes pink and its pupil reddens with its own window's
 percentage. Blinks and the go-outside shut-eye apply to both eyes either way.
@@ -34,8 +36,8 @@ Shut eyes with red pupils means both limits are spent. The bars in the menu use
 the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils.
 
-Prefer a colour per window? **Color ▸** (in the menu, below Icon) lists **Usage (Green → Red)**, the
-default described above, then four pairs: **Grape & Mint**, **Sky &
+Prefer a colour per window? Preferences ▸ **Color** offers **Usage** (green
+to red), the default described above, then four pairs: **Grape & Mint**, **Sky &
 Tangerine**, **Lime & Fuchsia** and **Rose & Cobalt**. With a pair chosen the
 session bar wears the first colour and the weekly bar the second, and so do
 the pupils: with One Eye per Window the left pupil is the session colour and
@@ -58,7 +60,7 @@ Motion it fades in without the bounce. To see it without spending a week,
 quit the app and run `open -a "Claude Usage" --args --go-outside-preview`: it
 speaks once, a moment after launch, and clicking that one only closes it.
 
-**Icon ▸** also offers plain meters — **Arc**, **Gauge**, **Pie** and
+Preferences ▸ **Icon** also offers plain meters — **Arc**, **Gauge**, **Pie** and
 **Wedge**. These show the session window only, coloured from cyan at 0%
 through blue and magenta to red at 100%, or in the session colour of a chosen
 pair.
@@ -89,7 +91,7 @@ or the app's own sign-in (below).
 
 ### Start at Login
 
-Toggle it from Settings ▸ Start at Login in the menu, or from the shell:
+Toggle it in Preferences (General ▸ Start at Login), or from the shell:
 
 ```sh
 "$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --login on       # or: off, status
@@ -104,17 +106,31 @@ process's own bundle, so the command must be the *installed* binary. A bare
 | Section | Source |
 |---|---|
 | Plan (`Max 20x`, `Pro`) and the 5-hour and 7-day allowances, with reset countdowns | Anthropic's OAuth usage endpoint, polled every 60 s |
-| Running Claude Code sessions and whether each is busy (off by default; Settings ▸ **Show Sessions**) | `~/.claude/sessions/*.json` |
+| Running Claude Code sessions and whether each is busy (off by default; Preferences ▸ **Show Sessions**) | `~/.claude/sessions/*.json` |
 
-Below the numbers are **Settings ▸**, **Icon ▸**, **Color ▸** and **Quit
-Claude Usage** (⌘Q). Settings holds Show Sessions, One Eye per Window, the
-sign-in rows, Start at Login and the version.
+The rows are read-only, so their labels draw grey; the percentages and bars
+keep their colours. Below them are
+**Preferences…** (⌘,) and **Quit Claude Usage** (⌘Q).
+
+## Preferences
+
+Menu ▸ **Preferences…** (⌘,) opens the **Claude Usage Preferences** window,
+the same one every Menumon app has (Esc or ⌘W closes it):
+
+- **General** — Start at Login, and Show Sessions.
+- **Icon** — the shape, as tiles drawn the way the bar draws them: Arc, Gauge,
+  Pie, Wedge or Owl. **One Eye per Window** (owl only) sits below.
+- **Color** — Usage (green to red) or one of the four pairs.
+- **Account** — Sign In with Claude… (Sign In Again… once the app has a login
+  of its own) and Sign Out.
+
+The version is at the bottom.
 
 ## Signing in
 
 The app uses Claude Code's login when there is one. Otherwise — or when it
-has lapsed — **Sign In with Claude…** (under Settings, or at the top of the
-menu when the numbers are missing) runs the same claude.ai OAuth flow Claude
+has lapsed — **Sign In with Claude…** (in Preferences ▸ Account, or in the menu
+when the numbers are missing) runs the same claude.ai OAuth flow Claude
 Code uses: the browser opens on the consent page, the app receives the code on
 a localhost port, exchanges it for tokens, and reads the plan from the profile
 endpoint. It requests the `user:profile` scope only, which can read usage but
@@ -124,7 +140,7 @@ That login belongs to the app. It is stored in its own Keychain item
 (`Claude Usage-credentials`), refreshed by the app ten minutes before it
 expires, and preferred over Claude Code's when both exist. The app never
 writes or refreshes Claude Code's credential: refresh tokens rotate, so
-refreshing it would sign Claude Code out. Settings ▸ **Sign Out of Claude Usage** deletes
+refreshing it would sign Claude Code out. Preferences ▸ Account ▸ **Sign Out** deletes
 the app's own login and falls back to Claude Code's.
 
 The flow uses Claude Code's OAuth client id, as other community tooling does;

@@ -36,17 +36,23 @@ final class App: NSObject, NSApplicationDelegate {
     /// Colour, by default, is data: the owl's pupils and the menu's bars are
     /// `MeterColor.health` of a fraction, dark green (#005401) when a window is
     /// fresh, reddening to #FF5401 when it is spent; the geometric meters use
-    /// `MeterColor.usage`, cyan to red. Under Icon the user can pick a
+    /// `MeterColor.usage`, cyan to red. In Preferences the user can pick a
     /// `ColorPair` instead: one fixed colour for the session, one for the week.
     private let appearance = MeterAppearance(defaultStyle: .character)
     private var colors = ColorPair.stored()
-    private lazy var appearanceMenu = AppearanceMenu(appearance: appearance,
-                                                     styles: MeterStyle.proportional + [.character],
-                                                     characterTitle: "Owl",
-                                                     offersColour: false) { [weak self] in
-        guard let self else { return }
-        self.render(self.latest)
-    }
+
+    /// Every option lives in the Preferences window (menu ▸ Preferences…).
+    private lazy var preferencesModel = PreferencesModel(
+        appearance: appearance,
+        preview: { [unowned self] style, pair in self.previewImage(style: style, colors: pair) },
+        isSigningIn: { [unowned self] in self.signingIn },
+        signIn: { [unowned self] in self.signIn() },
+        signOut: { [unowned self] in self.signOut() },
+        onChange: { [unowned self] in
+            self.colors = ColorPair.stored()
+            self.render(self.latest)
+        })
+    private lazy var preferences = makePreferences(model: preferencesModel)
 
     // Polling does network I/O and walks the transcript tree, so it runs off
     // the main thread. These are main-thread only: a refresh asked for while
@@ -86,9 +92,9 @@ final class App: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main
         ) { [weak self] note in
-            // Fires for every menu, submenus included. Clearing on the Icon
-            // submenu closing would silently kill live updates for the rest of
-            // the session, so only the root menu counts.
+            // Fires for every menu, submenus included. Clearing on a submenu
+            // closing would silently kill live updates for the rest of the
+            // session, so only the root menu counts.
             guard let self, (note.object as? NSMenu) === self.liveMenu else { return }
             self.liveMenu = nil
             self.liveHeader = nil
@@ -212,32 +218,49 @@ final class App: NSObject, NSApplicationDelegate {
         // and an unfilled meter already reads as "nothing to report" without
         // implying a full allowance.
         let session = snapshot.limits.limits.first
-        let fraction = CGFloat(session?.fraction ?? 0)
-        if appearance.style == .character {
+        let weekly = GoOutside.weekly(in: snapshot.limits.limits)
+        // Shut, and staying shut, after "go outside" was clicked this week.
+        let closure = GoOutside.eyesShut(now: Date()) ? 1 : blinkClosure
+        controller.setIcon(iconImage(style: appearance.style, colors: colors,
+                                     session: session.map { CGFloat($0.fraction) },
+                                     weekly: CGFloat(weekly?.fraction ?? 0), closure: closure))
+    }
+
+    /// The icon as the bar draws it. `session` nil draws a meter greyed: no
+    /// number to report.
+    private func iconImage(style: MeterStyle, colors: ColorPair?, session: CGFloat?,
+                           weekly: CGFloat, closure: CGFloat) -> NSImage {
+        let fraction = session ?? 0
+        if style == .character {
             // The owl shows both windows at once. By default its eyelids droop
             // with the session — open at 0, shut at 100% — and the weekly
             // window is its health: the whites go bloodshot and the pupils run
-            // green to red. With Settings ▸ One Eye per Window each eye is its
-            // own window instead, the left the session and the right the week.
-            // A blink closes whatever the lids have left open.
-            let weekly = CGFloat(GoOutside.weekly(in: snapshot.limits.limits)?.fraction ?? 0)
-            // Shut, and staying shut, after "go outside" was clicked this week.
-            let closure = GoOutside.eyesShut(now: Date()) ? 1 : blinkClosure
+            // green to red. With Preferences ▸ One Eye per Window each eye is
+            // its own window instead, the left the session and the right the
+            // week. A blink closes whatever the lids have left open.
             if MenuPreferences.eyePerWindow() {
                 // A pair colours each eye by its window: session left, week right.
                 let pupils = colors.map { (Self.color($0.sessionHex), Self.color($0.weeklyHex)) }
-                controller.setIcon(CharacterIcon.owl(leftEye: fraction, rightEye: weekly, closure: closure, pupils: pupils))
-            } else {
-                // Both pupils carry the week here, so a pair gives both its weekly colour.
-                let pupils = colors.map { (Self.color($0.weeklyHex), Self.color($0.weeklyHex)) }
-                let lids = fraction + (1 - fraction) * closure
-                controller.setIcon(CharacterIcon.owl(session: lids, weekly: weekly, pupils: pupils))
+                return CharacterIcon.owl(leftEye: fraction, rightEye: weekly, closure: closure, pupils: pupils)
             }
-            return
+            // Both pupils carry the week here, so a pair gives both its weekly colour.
+            let pupils = colors.map { (Self.color($0.weeklyHex), Self.color($0.weeklyHex)) }
+            let lids = fraction + (1 - fraction) * closure
+            return CharacterIcon.owl(session: lids, weekly: weekly, pupils: pupils)
         }
         let color = session == nil ? NSColor.secondaryLabelColor
             : colors.map { Self.color($0.sessionHex) } ?? MeterColor.usage(fraction)
-        controller.setIcon(MeterIcon.image(style: appearance.style, fraction: fraction, color: color))
+        return MeterIcon.image(style: style, fraction: fraction, color: color)
+    }
+
+    /// A Preferences tile: the icon in `style` and `colors` at the current
+    /// usage, eyes open, or at a made-up usage before the first numbers, so
+    /// every tile shows its shape and colour.
+    private func previewImage(style: MeterStyle, colors: ColorPair?) -> NSImage {
+        let limits = latest.limits.limits
+        let session = limits.first.map { CGFloat($0.fraction) } ?? 0.35
+        let weekly = limits.isEmpty ? 0.55 : CGFloat(GoOutside.weekly(in: limits)?.fraction ?? 0)
+        return iconImage(style: style, colors: colors, session: session, weekly: weekly, closure: 0)
     }
 
     // MARK: - Menu
@@ -257,10 +280,10 @@ final class App: NSObject, NSApplicationDelegate {
         liveHeader = headerView
 
         if !snapshot.limits.statusText.isEmpty {
-            menu.addItem(disabled(snapshot.limits.statusText))
+            menu.addItem(InfoMenuItem.make(snapshot.limits.statusText))
         }
         if snapshot.limits.limits.isEmpty && snapshot.limits.statusText.isEmpty {
-            menu.addItem(disabled("No limit data"))
+            menu.addItem(InfoMenuItem.make("No limit data"))
         }
         // Each bar wears the colour of its own fraction on the pupils' ramp,
         // #005401 reddening to #FF5401, so the weekly bar matches the pupils —
@@ -271,6 +294,7 @@ final class App: NSObject, NSApplicationDelegate {
             let color = colors.map { Self.color(index == 0 ? $0.sessionHex : $0.weeklyHex) }
                 ?? MeterColor.health(CGFloat(limit.fraction))
             item.view = LimitBarView(limit: limit, color: color)
+            item.isEnabled = false   // read-only: the view draws its labels grey
             menu.addItem(item)
         }
 
@@ -278,114 +302,37 @@ final class App: NSObject, NSApplicationDelegate {
             sessionItems(snapshot).forEach(menu.addItem)
         }
 
-        let afterSessions = NSMenuItem.separator()
-        afterSessions.tag = Self.afterSessionsTag
-        menu.addItem(afterSessions)
+        menu.addItem(.separator())
         // Sign-in is offered whenever the credential is unusable. It runs the
         // same claude.ai authorisation Claude Code does, from here: the
         // browser opens on the consent page and comes back to the app, and
         // the app keeps the resulting login alive itself.
         if signingIn {
-            menu.addItem(disabled("Waiting for claude.ai in the browser…"))
+            menu.addItem(InfoMenuItem.make("Waiting for claude.ai in the browser…"))
         } else if !snapshot.limits.statusText.isEmpty {
             menu.addItem(action("Sign In with Claude…", #selector(signIn)))
         }
 
-        // Everything the user can set lives one level down, so the top level
-        // is the numbers, a settings entry, and Quit.
-        SettingsMenu.addFooter(to: menu, appName: "Claude Usage", items: { [unowned self] settings in
-            // Keep-open checkbox: the sessions section appears or goes in the
-            // menu behind it while Settings stays up.
-            settings.addItem(ToggleMenuItem.make(title: "Show Sessions", isOn: MenuPreferences.showSessions()) { [weak self] on in
-                self?.setShowSessions(on)
-            })
-            // Only the owl has eyes; the meters show the session either way.
-            settings.addItem(ToggleMenuItem.make(title: "One Eye per Window", isOn: MenuPreferences.eyePerWindow()) { [weak self] on in
-                MenuPreferences.setEyePerWindow(on)
-                if let self { self.render(self.latest) }
-            })
-            // While the numbers are fine the sign-in lives down here: a login
-            // of the app's own is what lets it stay signed in without the CLI.
-            // Only a login this app made is its to forget; Claude Code's stays.
-            var account: [NSMenuItem] = []
-            if !self.signingIn {
-                account.append(self.action(OwnLogin.exists ? "Sign In Again…" : "Sign In with Claude…", #selector(self.signIn)))
-            }
-            if OwnLogin.exists {
-                account.append(self.action("Sign Out of Claude Usage", #selector(self.signOut)))
-            }
-            if !account.isEmpty {
-                settings.addItem(.separator())
-                account.forEach(settings.addItem)
-            }
-        }, belowSettings: { [unowned self] menu in
-            // Icon and Color side by side in the main menu, right below
-            // Settings, so the two pickers read as a pair.
-            menu.addItem(self.appearanceMenu.menuItem())
-            let color = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
-            color.submenu = NSMenu(title: "Color")
-            self.addColorPairs(to: color.submenu!)
-            menu.addItem(color)
-        })
+        // Everything the user can set lives in the Preferences window, so the
+        // menu is the numbers, Preferences… and Quit.
+        PreferencesMenu.addFooter(to: menu, appName: "Claude Usage") { [weak self] in self?.preferences.show() }
+        // Options keep the menu open; Quit and the "…" items, which open a
+        // window or the browser, close it.
+        KeepOpenMenu.apply(to: menu.items)
     }
 
-    // MARK: - Colour pairs
-
-    private static func color(_ hex: String) -> NSColor { MeterColor.color(fromHex: hex) ?? .systemGray }
-
-    /// The Color submenu: the usage ramp, then one row per pair with a two-dot
-    /// swatch (session left, weekly right).
-    private func addColorPairs(to menu: NSMenu) {
-        let ramp = NSMenuItem(title: "Usage (Green → Red)", action: #selector(pickColorPair(_:)), keyEquivalent: "")
-        ramp.target = self
-        ramp.image = Self.swatch([MeterColor.health(0), MeterColor.health(1)])
-        ramp.state = colors == nil ? .on : .off
-        menu.addItem(ramp)
-        for pair in ColorPair.presets {
-            let item = NSMenuItem(title: pair.name, action: #selector(pickColorPair(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = pair.id
-            item.image = Self.swatch([Self.color(pair.sessionHex), Self.color(pair.weeklyHex)])
-            item.state = pair == colors ? .on : .off
-            menu.addItem(item)
-        }
-    }
-
-    private static func swatch(_ colors: [NSColor], diameter: CGFloat = 12) -> NSImage {
-        let gap: CGFloat = 3
-        let image = NSImage(size: NSSize(width: diameter * 2 + gap, height: diameter), flipped: false) { _ in
-            for (i, color) in colors.enumerated() {
-                color.setFill()
-                NSBezierPath(ovalIn: NSRect(x: CGFloat(i) * (diameter + gap), y: 0, width: diameter, height: diameter)).fill()
-            }
-            return true
-        }
-        image.isTemplate = false
-        return image
-    }
-
-    @objc private func pickColorPair(_ sender: NSMenuItem) {
-        let id = sender.representedObject as? String
-        colors = ColorPair.presets.first(where: { $0.id == id })
-        ColorPair.save(colors)
-        render(latest)
-    }
+    private static func color(_ hex: String) -> NSColor { ColorSwatch.color(hex) }
 
     // MARK: - Menu item helpers
 
+    /// A read-only section header: small, semibold and grey.
     private func header(_ text: String) -> NSMenuItem {
-        let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
+        let item = InfoMenuItem.make(text)
         item.attributedTitle = NSAttributedString(
             string: text,
-            attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)]
+            attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
+                         .foregroundColor: NSColor.disabledControlTextColor]
         )
-        item.isEnabled = false
-        return item
-    }
-
-    private func disabled(_ text: String) -> NSMenuItem {
-        let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
-        item.isEnabled = false
         return item
     }
 
@@ -395,37 +342,17 @@ final class App: NSObject, NSApplicationDelegate {
         return item
     }
 
-    // MARK: - Actions
+    // MARK: - Sessions
 
-    /// Tags for the sessions section's rows and the separator after it, so the
-    /// section can be added or removed in place while the menu is up.
-    private static let sessionsTag = 0x5E55
-    private static let afterSessionsTag = 0x5E56
-
-    /// The sessions section: a separator, a header, one row per session.
+    /// The sessions section: a separator, a header, one row per session,
+    /// all read-only.
     private func sessionItems(_ snapshot: Snapshot) -> [NSMenuItem] {
         let busy = snapshot.sessions.filter(\.isBusy).count
         var items: [NSMenuItem] = [.separator(), header("Sessions   \(snapshot.sessions.count) running, \(busy) busy")]
         for session in snapshot.sessions.prefix(12) {
-            items.append(disabled("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
+            items.append(InfoMenuItem.make("\(session.isBusy ? "●" : "○") \(session.name)   \(session.status)"))
         }
-        items.forEach { $0.tag = Self.sessionsTag }
         return items
-    }
-
-    /// Shows or hides the sessions section. If the menu is still up, the rows
-    /// appear or go in place — not a rebuild, which would pull the Settings
-    /// submenu (where the checkbox is) out from under the cursor.
-    private func setShowSessions(_ on: Bool) {
-        MenuPreferences.setShowSessions(on)
-        guard let menu = liveMenu else { return }
-        for item in menu.items where item.tag == Self.sessionsTag { menu.removeItem(item) }
-        let snapshot = latest
-        guard on,
-              let anchor = menu.items.firstIndex(where: { $0.tag == Self.afterSessionsTag }) else { return }
-        for (offset, item) in sessionItems(snapshot).enumerated() {
-            menu.insertItem(item, at: anchor + offset)
-        }
     }
 
     // MARK: - Sign-in
@@ -433,15 +360,16 @@ final class App: NSObject, NSApplicationDelegate {
     private let signInFlow = SignIn()
     private var signingIn = false
 
-    /// Open claude.ai's consent page and wait for it to come back. The
-    /// menu says so meanwhile, and a finished sign-in refreshes the numbers
-    /// straight away rather than on the next poll.
+    /// Open claude.ai's consent page and wait for it to come back. The menu
+    /// and Preferences say so meanwhile, and a finished sign-in refreshes the
+    /// numbers straight away rather than on the next poll.
     @objc private func signIn() {
         do {
             let url = try signInFlow.start { [weak self] outcome in
                 DispatchQueue.main.async { self?.signInEnded(outcome) }
             }
             signingIn = true
+            preferencesModel.refresh()
             App.log("sign-in: waiting for the browser")
             NSWorkspace.shared.open(url)
         } catch {
@@ -478,6 +406,7 @@ final class App: NSObject, NSApplicationDelegate {
         case .timedOut:
             App.log("sign-in: timed out")
         }
+        preferencesModel.refresh()
         if let menu = liveMenu {
             menu.removeAllItems()
             buildMenu(menu)
@@ -488,6 +417,7 @@ final class App: NSObject, NSApplicationDelegate {
         OwnLogin.forget()
         CredentialStore.invalidate()
         App.log("sign-out: own login forgotten")
+        preferencesModel.refresh()
         poll(force: true)
     }
 

@@ -8,6 +8,12 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.20.1] - 2026-11-10
+
+- Updated StatusItemKit to 0.39.0
+- The owl's pupils are much easier to see. The usage colours and every colour pair are deeper shades of the same hues, so they stand out from the white of his eye however tired it gets.
+- The menu's bars and percentages are easy to read on a dark menu. They now use light shades of the same colours there, and the deep ones on a light menu.
+
 ## [1.20.0] - 2026-11-10
 
 - Usage for scripts and agents: after every poll the app writes

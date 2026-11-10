@@ -6,7 +6,7 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
-**Version 1.20.0** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+**Version 1.20.1** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
 
 ![The Claude Usage menu](screenshots/menu.png)
 
@@ -24,8 +24,8 @@ The icon is Archimedes, an owl:
   shut at 100%.
 - **Whites of the eyes** — the 7-day weekly window. They turn a deepening pink
   past 25% used, and red veins fade in over the last quarter.
-- **Pupils** — also the weekly window: dark green (`#005401`) at 0%, reddening
-  to orange-red (`#FF5401`) at 100%.
+- **Pupils** — also the weekly window: green (`#00860B`) at 0%, through orange to
+  red (`#A50000`) at 100%.
 
 **One Eye per Window** (Preferences, under Icon) gives each window an eye of
 its own: the left eye is the session, the right the week. Each eye's lid

@@ -19,17 +19,28 @@ public struct ColorPair: Equatable, Sendable {
     public let name: String
     public let sessionHex: String
     public let weeklyHex: String
+    /// The same two hues in light shades, for the menu's bars and text on a
+    /// dark menu, where the deep ones (made for the owl's eye white) sink in.
+    public let sessionOnDarkHex: String
+    public let weeklyOnDarkHex: String
 
     /// A new key rather than the old `ColorPair` one: that choice has been
     /// ignored since colour started carrying data, and quietly reviving a pair
     /// picked a month ago would look like a bug.
     public static let key = "WindowColors"
 
+    /// Every colour is deep enough to read as a pupil on the owl's eye white:
+    /// at least 4.5:1 on white and 3:1 on the pink of a spent week (#FFB3B3).
+    /// Each on-dark shade is at least 4.5:1 on a dark menu (#2A2A2A).
     public static let presets: [ColorPair] = [
-        ColorPair(id: "grape-mint",     name: "Grape & Mint",     sessionHex: "#B18EEE", weeklyHex: "#5FD3A6"),
-        ColorPair(id: "sky-tangerine",  name: "Sky & Tangerine",  sessionHex: "#5AA9F5", weeklyHex: "#FF9F43"),
-        ColorPair(id: "lime-fuchsia",   name: "Lime & Fuchsia",   sessionHex: "#8CD64A", weeklyHex: "#E85BC2"),
-        ColorPair(id: "rose-cobalt",    name: "Rose & Cobalt",    sessionHex: "#F06A8A", weeklyHex: "#4C6EF5"),
+        ColorPair(id: "grape-mint",     name: "Grape & Mint",     sessionHex: "#7A3EE2", weeklyHex: "#09744B",
+                  sessionOnDarkHex: "#B18EEE", weeklyOnDarkHex: "#5FD3A6"),
+        ColorPair(id: "sky-tangerine",  name: "Sky & Tangerine",  sessionHex: "#0B65BB", weeklyHex: "#A04E00",
+                  sessionOnDarkHex: "#5AA9F5", weeklyOnDarkHex: "#FF9F43"),
+        ColorPair(id: "lime-fuchsia",   name: "Lime & Fuchsia",   sessionHex: "#3B7209", weeklyHex: "#B91A8E",
+                  sessionOnDarkHex: "#8CD64A", weeklyOnDarkHex: "#E85BC2"),
+        ColorPair(id: "rose-cobalt",    name: "Rose & Cobalt",    sessionHex: "#C7143F", weeklyHex: "#2A52F3",
+                  sessionOnDarkHex: "#F06A8A", weeklyOnDarkHex: "#6C8AFF"),
     ]
 
     /// The chosen pair, or nil for the usage ramp (the default, and the

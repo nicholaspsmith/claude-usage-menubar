@@ -34,8 +34,8 @@ final class App: NSObject, NSApplicationDelegate {
     /// stops work — while the owl shows both windows at once, either way
     /// round (`MenuPreferences.eyePerWindow`).
     /// Colour, by default, is data: the owl's pupils and the menu's bars are
-    /// `MeterColor.health` of a fraction, dark green (#005401) when a window is
-    /// fresh, reddening to #FF5401 when it is spent; the geometric meters use
+    /// `MeterColor.health` of a fraction, green (#00860B) when a window is
+    /// fresh, reddening to #A50000 when it is spent; the geometric meters use
     /// `MeterColor.usage`, cyan to red. In Preferences the user can pick a
     /// `ColorPair` instead: one fixed colour for the session, one for the week.
     private let appearance = MeterAppearance(defaultStyle: .character)
@@ -288,13 +288,16 @@ final class App: NSObject, NSApplicationDelegate {
             menu.addItem(InfoMenuItem.make("No limit data"))
         }
         // Each bar wears the colour of its own fraction on the pupils' ramp,
-        // #005401 reddening to #FF5401, so the weekly bar matches the pupils —
-        // or, with a pair chosen, its window's colour: the first limit is the
-        // session, the second the week.
+        // #00860B reddening to #A50000 — or, with a pair chosen, its window's
+        // colour: the first limit is the session, the second the week. Those
+        // deep shades are for the eye white and a light menu; on a dark menu
+        // each bar takes the light shade of the same hue instead.
         for (index, limit) in snapshot.limits.limits.enumerated() {
             let item = NSMenuItem()
-            let color = colors.map { Self.color(index == 0 ? $0.sessionHex : $0.weeklyHex) }
-                ?? MeterColor.health(CGFloat(limit.fraction))
+            let color = colors.map { pair in
+                Self.menuColor(light: index == 0 ? pair.sessionHex : pair.weeklyHex,
+                               dark: index == 0 ? pair.sessionOnDarkHex : pair.weeklyOnDarkHex)
+            } ?? MeterColor.healthAdaptive(CGFloat(limit.fraction))
             item.view = LimitBarView(limit: limit, color: color)
             item.isEnabled = false   // read-only: the view draws its labels grey
             menu.addItem(item)
@@ -324,6 +327,14 @@ final class App: NSObject, NSApplicationDelegate {
     }
 
     private static func color(_ hex: String) -> NSColor { ColorSwatch.color(hex) }
+
+    /// A menu colour that follows the menu's appearance: the deep shade on a
+    /// light menu, the light one on a dark, so both stand out.
+    private static func menuColor(light: String, dark: String) -> NSColor {
+        NSColor(name: nil) { appearance in
+            color(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
+        }
+    }
 
     // MARK: - Menu item helpers
 

@@ -8,6 +8,11 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.22.0] - 2026-11-10
+
+- Updated StatusItemKit to 0.40.0
+- `IconTilePicker` can space its tiles evenly: given a `columnWidth` (`IconTilePicker.columnWidth(for:)` spreads them across the form) each tile sits in a column of that width whatever its name, and a long name shrinks slightly to fit instead of being cut off.
+
 ## [1.21.0] - 2026-11-10
 
 - Pick your own eye colours: Preferences ▸ Color ▸ Custom opens the macOS colour picker for the left eye and the right. Tick Same Color for Both Eyes to use one colour for both.

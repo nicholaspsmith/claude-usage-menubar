@@ -8,6 +8,11 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.21.0] - 2026-11-10
+
+- Pick your own eye colours: Preferences ▸ Color ▸ Custom opens the macOS colour picker for the left eye and the right. Tick Same Color for Both Eyes to use one colour for both.
+- The menu's bars follow your colours (left eye for the session, right for the week), lightened or darkened where needed so they stay readable.
+
 ## [1.20.1] - 2026-11-10
 
 - Updated StatusItemKit to 0.39.0

@@ -24,24 +24,73 @@ final class ColorPairTests: XCTestCase {
     // A pupil has to stand out from the owl's eye white: 4.5:1 on white and
     // 3:1 on the pink of a spent week (#FFB3B3).
     func testEveryColourContrastsWithTheEyeWhite() {
-        func luminance(_ hex: String) -> Double {
-            let value = UInt32(hex.dropFirst(), radix: 16)!
-            func lin(_ shift: UInt32) -> Double {
-                let v = Double((value >> shift) & 0xFF) / 255
-                return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
-            }
-            return 0.2126 * lin(16) + 0.7152 * lin(8) + 0.0722 * lin(0)
-        }
         for pair in ColorPair.presets {
             for hex in [pair.sessionHex, pair.weeklyHex] {
-                XCTAssertGreaterThan((luminance("#FFFFFF") + 0.05) / (luminance(hex) + 0.05), 4.5, "\(pair.name) \(hex) on white")
-                XCTAssertGreaterThan((luminance("#FFB3B3") + 0.05) / (luminance(hex) + 0.05), 3, "\(pair.name) \(hex) on pink")
+                XCTAssertGreaterThan(ColorContrast.ratio(hex, "#FFFFFF"), 4.5, "\(pair.name) \(hex) on white")
+                XCTAssertGreaterThan(ColorContrast.ratio(hex, "#FFB3B3"), 3, "\(pair.name) \(hex) on pink")
             }
             // And the menu's bars and text have to stand out from a dark menu.
             for hex in [pair.sessionOnDarkHex, pair.weeklyOnDarkHex] {
-                XCTAssertGreaterThan((luminance(hex) + 0.05) / (luminance("#2A2A2A") + 0.05), 4.5, "\(pair.name) \(hex) on a dark menu")
+                XCTAssertGreaterThan(ColorContrast.ratio(hex, ColorContrast.darkMenuHex), 4.5, "\(pair.name) \(hex) on a dark menu")
             }
         }
+    }
+
+    // MARK: - Custom colours
+
+    // Choosing Custom before touching a picker still gives two colours.
+    func testCustomStartsOnTwoDifferentColours() {
+        let d = defaults()
+        d.set(ColorPair.customID, forKey: ColorPair.key)
+        let pair = ColorPair.stored(in: d)
+        XCTAssertEqual(pair?.isCustom, true)
+        XCTAssertEqual(pair?.sessionHex, ColorPair.customDefaults.left)
+        XCTAssertEqual(pair?.weeklyHex, ColorPair.customDefaults.right)
+        XCTAssertFalse(ColorPair.presets.contains(where: \.isCustom))
+    }
+
+    // Each eye keeps the colour picked for it: left first, right second.
+    func testCustomColoursRoundTripPerEye() {
+        let d = defaults()
+        ColorPair.setCustomColor("#ff0000", left: true, in: d)
+        ColorPair.setCustomColor("0000FF", left: false, in: d)
+        let pair = ColorPair.custom(in: d)
+        XCTAssertEqual(pair.sessionHex, "#FF0000")
+        XCTAssertEqual(pair.weeklyHex, "#0000FF")
+    }
+
+    // "Same colour" gives both eyes the left's, and the right's own colour is
+    // still there when it is switched back off.
+    func testSameColourFollowsTheLeftEyeAndForgetsNothing() {
+        let d = defaults()
+        ColorPair.setCustomColor("#FF0000", left: true, in: d)
+        ColorPair.setCustomColor("#0000FF", left: false, in: d)
+        XCTAssertFalse(ColorPair.customSame(in: d))
+        ColorPair.setCustomSame(true, in: d)
+        XCTAssertEqual(ColorPair.custom(in: d).sessionHex, "#FF0000")
+        XCTAssertEqual(ColorPair.custom(in: d).weeklyHex, "#FF0000")
+        ColorPair.setCustomSame(false, in: d)
+        XCTAssertEqual(ColorPair.custom(in: d).weeklyHex, "#0000FF")
+    }
+
+    // A hand-edited default that is not a colour must not break the icon.
+    func testNonsenseCustomColourIsIgnored() {
+        let d = defaults()
+        ColorPair.setCustomColor("chartreuse", left: true, in: d)
+        XCTAssertEqual(ColorPair.custom(in: d).sessionHex, ColorPair.customDefaults.left)
+        d.set("#12", forKey: ColorPair.customRightKey)
+        XCTAssertEqual(ColorPair.custom(in: d).weeklyHex, ColorPair.customDefaults.right)
+    }
+
+    // Whatever is picked, the menu's bars stay readable on a dark menu.
+    func testCustomColoursGetAReadableShadeForADarkMenu() {
+        let d = defaults()
+        ColorPair.setCustomColor("#000080", left: true, in: d)   // navy: sinks into a dark menu
+        ColorPair.setCustomColor("#FFE066", left: false, in: d)  // pale yellow: already fine there
+        let pair = ColorPair.custom(in: d)
+        XCTAssertEqual(pair.sessionHex, "#000080", "the pupil wears it as picked")
+        XCTAssertGreaterThanOrEqual(ColorContrast.ratio(pair.sessionOnDarkHex, ColorContrast.darkMenuHex), 4.5)
+        XCTAssertEqual(pair.weeklyOnDarkHex, "#FFE066")
     }
 
     // A fresh install keeps the usage ramp.

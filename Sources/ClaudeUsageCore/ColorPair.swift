@@ -10,9 +10,10 @@ import Foundation
 /// together from a short list of pairs, in place of the green-to-red usage
 /// ramp.
 ///
-/// Pairs rather than two free pickers: the list is short, every pair is
-/// guaranteed to differ, and nobody has to hunt for two hues that read well
-/// side by side. Colours are hex strings so the choice is readable in
+/// The list of pairs is short, every one is guaranteed to differ, and nobody
+/// has to hunt for two hues that read well side by side. For anyone who would
+/// rather hunt, the last choice is `custom`: two colours of the user's own,
+/// or one for both. Colours are hex strings so the choice is readable in
 /// `defaults read` and the core stays free of AppKit.
 public struct ColorPair: Equatable, Sendable {
     public let id: String
@@ -47,7 +48,57 @@ public struct ColorPair: Equatable, Sendable {
     /// answer for an id this build doesn't know).
     public static func stored(in defaults: UserDefaults = .standard) -> ColorPair? {
         guard let id = defaults.string(forKey: key) else { return nil }
+        if id == customID { return custom(in: defaults) }
         return presets.first(where: { $0.id == id })
+    }
+
+    // MARK: - Custom colours
+
+    /// The id of the user's own colours. Unlike a preset, whose pupils both
+    /// take the weekly colour unless each eye has its own window, a custom
+    /// pair always gives the left eye its first colour and the right its
+    /// second: the user chose them for the eyes.
+    public static let customID = "custom"
+    public static let customLeftKey = "CustomLeftEyeColor"
+    public static let customRightKey = "CustomRightEyeColor"
+    public static let customSameKey = "CustomEyeColorsSame"
+    /// What the pickers start on: Grape & Mint's pupils.
+    public static let customDefaults = (left: "#7A3EE2", right: "#09744B")
+
+    public var isCustom: Bool { id == Self.customID }
+
+    /// The left eye's stored colour and the right's, as picked: the right
+    /// keeps its own even while "same colour" has it follow the left.
+    public static func customColors(in defaults: UserDefaults = .standard) -> (left: String, right: String) {
+        (defaults.string(forKey: customLeftKey).flatMap(ColorContrast.parse) ?? customDefaults.left,
+         defaults.string(forKey: customRightKey).flatMap(ColorContrast.parse) ?? customDefaults.right)
+    }
+
+    /// Whether both eyes share the left eye's colour. Off by default.
+    public static func customSame(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: customSameKey)
+    }
+
+    public static func setCustomSame(_ same: Bool, in defaults: UserDefaults = .standard) {
+        defaults.set(same, forKey: customSameKey)
+    }
+
+    /// Saves one eye's colour; anything that is not `#RRGGBB` is ignored.
+    public static func setCustomColor(_ hex: String, left: Bool, in defaults: UserDefaults = .standard) {
+        guard let hex = ColorContrast.parse(hex) else { return }
+        defaults.set(hex, forKey: left ? customLeftKey : customRightKey)
+    }
+
+    /// The user's own colours as a pair: left eye and session bar first,
+    /// right eye and weekly bar second, or the left's for both when they are
+    /// set to match. The pupils wear the colours exactly as picked; the menu
+    /// on a dark background gets the nearest shade of each that reads there.
+    public static func custom(in defaults: UserDefaults = .standard) -> ColorPair {
+        let picked = customColors(in: defaults)
+        let right = customSame(in: defaults) ? picked.left : picked.right
+        return ColorPair(id: customID, name: "Custom", sessionHex: picked.left, weeklyHex: right,
+                         sessionOnDarkHex: ColorContrast.readable(picked.left, on: ColorContrast.darkMenuHex),
+                         weeklyOnDarkHex: ColorContrast.readable(right, on: ColorContrast.darkMenuHex))
     }
 
     /// Saves `pair`, or the usage ramp for nil.

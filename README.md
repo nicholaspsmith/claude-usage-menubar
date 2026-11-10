@@ -6,7 +6,7 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
-**Version 1.20.1** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+**Version 1.21.0** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
 
 ![The Claude Usage menu](screenshots/menu.png)
 
@@ -43,6 +43,12 @@ session bar wears the first colour and the weekly bar the second, and so do
 the pupils: with One Eye per Window the left pupil is the session colour and
 the right the weekly; otherwise both pupils carry the week, so both are the
 weekly colour. The whites still go pink and veined with usage.
+
+Or pick your own: the last tile, **Custom**, shows the macOS colour picker for
+the **Left Eye** and the **Right Eye**. Tick **Same Color for Both Eyes** to
+pick one colour for both. The left eye's colour is also the session bar's and
+the right eye's the weekly bar's; in the menu a colour is lightened or
+darkened when that is needed to read it.
 
 Now and then the owl blinks (550 ms). When several Menumon mascots are
 running they take turns, a second apart: Archimedes (Claude Usage), Menu Pimp
@@ -153,7 +159,8 @@ the same one every Menumon app has (Esc or ⌘W closes it):
 - **General** — Start at Login, and Show Sessions.
 - **Icon** — the shape, as tiles drawn the way the bar draws them: Arc, Gauge,
   Pie, Wedge or Owl. **One Eye per Window** (owl only) sits below.
-- **Color** — Usage (green to red) or one of the four pairs.
+- **Color** — Usage (green to red), one of the four pairs, or Custom: your
+  own colour for each eye, or one for both.
 - **Account** — Sign In with Claude… (Sign In Again… once the app has a login
   of its own) and Sign Out.
 

@@ -192,6 +192,8 @@ final class App: NSObject, NSApplicationDelegate {
                     + " | status: \(snapshot.limits.statusText)")
             snapshot.sessions = SessionRegistry.load()
             snapshot.updatedAt = Date()
+            // For scripts and agents that cannot open the menu (README: "For scripts and agents").
+            UsageExport.write(snapshot.limits, updatedAt: snapshot.updatedAt ?? Date())
 
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -432,6 +434,17 @@ final class App: NSObject, NSApplicationDelegate {
 // status` — a query — silently registered the app, and a typo like `--login yes`
 // did too.
 LoginCLI.runIfRequested()
+
+// `ClaudeUsage --usage` prints the last poll's numbers as JSON and exits, for
+// scripts and agents (the running menu-bar app writes the file every minute).
+if CommandLine.arguments.contains("--usage") {
+    if let data = UsageExport.readLatest(), let text = String(data: data, encoding: .utf8) {
+        print(text)
+        exit(0)
+    }
+    FileHandle.standardError.write(Data("No usage yet: is Claude Usage running and signed in? (\(UsageExport.defaultURL.path))\n".utf8))
+    exit(1)
+}
 
 let app = NSApplication.shared
 let delegate = App()

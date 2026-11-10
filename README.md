@@ -6,7 +6,7 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
-**Version 1.19.2** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+**Version 1.20.0** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
 
 ![The Claude Usage menu](screenshots/menu.png)
 
@@ -111,6 +111,39 @@ process's own bundle, so the command must be the *installed* binary. A bare
 The rows are read-only, so their labels draw grey; the percentages and bars
 keep their colours. Below them are
 **Preferences…** (⌘,) and **Quit Claude Usage** (⌘Q).
+
+## For scripts and agents
+
+After every poll (once a minute, and on each manual refresh) the app writes
+the numbers it shows to
+`~/Library/Application Support/ClaudeUsage/usage.json`, atomically, so a
+shell script, a launchd job or a Claude Code agent can read the meter
+without opening the menu:
+
+```json
+{
+  "schema": 1,
+  "updatedAt": "2026-11-10T04:00:00Z",
+  "plan": "Max 5x",
+  "status": "",
+  "limits": [
+    { "window": "session", "label": "Session (5-hour)", "percent": 93, "fraction": 0.93,
+      "resetsAt": "2026-11-10T05:00:00Z", "resetsInSeconds": 3600 },
+    { "window": "weekly", "label": "Weekly (7-day)", "percent": 29, "fraction": 0.29,
+      "resetsAt": "2026-11-14T04:00:00Z", "resetsInSeconds": 345600 }
+  ]
+}
+```
+
+`status` is empty when the numbers are current and says why when they are
+missing or stale (signed out, offline), so a reader can tell "unknown" from
+"0%". Nothing in the file is a secret. `ClaudeUsage --usage` prints the same
+file:
+
+```bash
+"$HOME/Applications/Claude Usage.app/Contents/MacOS/ClaudeUsage" --usage \
+  | jq '.limits[] | select(.window == "session") | .percent'
+```
 
 ## Preferences
 

@@ -8,6 +8,12 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.20.0] - 2026-11-10
+
+- Usage for scripts and agents: after every poll the app writes
+  `~/Library/Application Support/ClaudeUsage/usage.json` with the session and
+  weekly percentages, reset times and plan, and `ClaudeUsage --usage` prints it.
+
 ## [1.19.2] - 2026-11-03
 
 - Updated StatusItemKit to 0.38.4

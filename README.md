@@ -6,7 +6,7 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
-**Version 1.21.0** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+**Version 1.21.1** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
 
 ![The Claude Usage menu](screenshots/menu.png)
 
@@ -37,8 +37,8 @@ the same green-to-red ramp, each by its own percentage, so the weekly bar
 matches the pupils.
 
 Prefer a colour per window? Preferences ▸ **Color** offers **Usage** (green
-to red), the default described above, then four pairs: **Grape & Mint**, **Sky &
-Tangerine**, **Lime & Fuchsia** and **Rose & Cobalt**. With a pair chosen the
+to red), the default described above, then three pairs: **Grape & Mint**, **Sky &
+Tangerine** and **Lime & Fuchsia**. With a pair chosen the
 session bar wears the first colour and the weekly bar the second, and so do
 the pupils: with One Eye per Window the left pupil is the session colour and
 the right the weekly; otherwise both pupils carry the week, so both are the
@@ -159,7 +159,7 @@ the same one every Menumon app has (Esc or ⌘W closes it):
 - **General** — Start at Login, and Show Sessions.
 - **Icon** — the shape, as tiles drawn the way the bar draws them: Arc, Gauge,
   Pie, Wedge or Owl. **One Eye per Window** (owl only) sits below.
-- **Color** — Usage (green to red), one of the four pairs, or Custom: your
+- **Color** — Usage (green to red), one of the three pairs, or Custom: your
   own colour for each eye, or one for both.
 - **Account** — Sign In with Claude… (Sign In Again… once the app has a login
   of its own) and Sign Out.

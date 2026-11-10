@@ -14,7 +14,7 @@ final class ColorPairTests: XCTestCase {
 
     // The whole point of a pair is that the two windows can be told apart.
     func testEveryPairHasTwoDifferentColours() {
-        XCTAssertEqual(ColorPair.presets.count, 4)
+        XCTAssertEqual(ColorPair.presets.count, 3)
         for pair in ColorPair.presets {
             XCTAssertNotEqual(pair.sessionHex.uppercased(), pair.weeklyHex.uppercased(), pair.name)
         }
@@ -111,6 +111,13 @@ final class ColorPairTests: XCTestCase {
         ColorPair.save(chosen, to: d)
         XCTAssertEqual(ColorPair.stored(in: d), chosen)
         ColorPair.save(nil, to: d)
+        XCTAssertNil(ColorPair.stored(in: d))
+    }
+
+    // Rose & Cobalt was dropped in 1.21.1: whoever had it is back on the ramp.
+    func testARetiredPairFallsBackToTheRamp() {
+        let d = defaults()
+        d.set("rose-cobalt", forKey: ColorPair.key)
         XCTAssertNil(ColorPair.stored(in: d))
     }
 

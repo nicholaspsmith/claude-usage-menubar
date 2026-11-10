@@ -40,8 +40,6 @@ public struct ColorPair: Equatable, Sendable {
                   sessionOnDarkHex: "#5AA9F5", weeklyOnDarkHex: "#FF9F43"),
         ColorPair(id: "lime-fuchsia",   name: "Lime & Fuchsia",   sessionHex: "#3B7209", weeklyHex: "#B91A8E",
                   sessionOnDarkHex: "#8CD64A", weeklyOnDarkHex: "#E85BC2"),
-        ColorPair(id: "rose-cobalt",    name: "Rose & Cobalt",    sessionHex: "#C7143F", weeklyHex: "#2A52F3",
-                  sessionOnDarkHex: "#F06A8A", weeklyOnDarkHex: "#6C8AFF"),
     ]
 
     /// The chosen pair, or nil for the usage ramp (the default, and the

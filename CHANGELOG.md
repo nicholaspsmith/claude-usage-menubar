@@ -8,6 +8,12 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.21.1] - 2026-11-10
+
+- Removed the Rose & Cobalt colour pair. If you had it chosen, the owl is back on the Usage colours; Custom can recreate it.
+- Updated StatusItemKit to 0.40.0
+- The Icon and Color tiles in Preferences are evenly spaced, and every colour's name fits under its tile.
+
 ## [1.21.0] - 2026-11-10
 
 - Pick your own eye colours: Preferences ▸ Color ▸ Custom opens the macOS colour picker for the left eye and the right. Tick Same Color for Both Eyes to use one colour for both.

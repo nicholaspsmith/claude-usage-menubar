@@ -138,7 +138,7 @@ struct PreferencesView: View {
             Section {
                 IconTilePicker(model.styles.map { style in
                     .init(id: style, title: model.title(style), image: model.preview(style, model.selectedPair))
-                }, selection: $model.style)
+                }, selection: $model.style, columnWidth: IconTilePicker<MeterStyle>.columnWidth(for: model.styles.count))
                 .tileRow()
                 Toggle("One Eye per Window", isOn: $model.eyePerWindow)
                     .disabled(model.style != .character)
@@ -148,7 +148,8 @@ struct PreferencesView: View {
                 PreferencesNote("The meters show the 5-hour session. The owl shows both windows: his lids follow the session and his eyes the week, or, with One Eye per Window, the left eye is the session and the right the week.")
             }
             Section {
-                IconTilePicker(colorChoices, selection: $model.colorID).tileRow()
+                IconTilePicker(colorChoices, selection: $model.colorID,
+                               columnWidth: IconTilePicker<String>.columnWidth(for: colorChoices.count)).tileRow()
                 if model.isCustom {
                     Toggle("Same Color for Both Eyes", isOn: $model.customSame)
                         .toggleStyle(.checkbox)

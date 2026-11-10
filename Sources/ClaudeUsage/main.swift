@@ -37,7 +37,8 @@ final class App: NSObject, NSApplicationDelegate {
     /// `MeterColor.health` of a fraction, green (#00860B) when a window is
     /// fresh, reddening to #A50000 when it is spent; the geometric meters use
     /// `MeterColor.usage`, cyan to red. In Preferences the user can pick a
-    /// `ColorPair` instead: one fixed colour for the session, one for the week.
+    /// `ColorPair` instead: one fixed colour for the session, one for the week,
+    /// from a short list or of their own choosing.
     private let appearance = MeterAppearance(defaultStyle: .character)
     private var colors = ColorPair.stored()
 
@@ -116,6 +117,10 @@ final class App: NSObject, NSApplicationDelegate {
         // `--go-outside-preview`: say it once, a moment after launch, whatever the usage.
         if CommandLine.arguments.contains("--go-outside-preview") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.showBubble(preview: true) }
+        }
+        // `--preferences`: open the Preferences window at launch.
+        if CommandLine.arguments.contains("--preferences") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.preferences.show() }
         }
     }
 
@@ -245,8 +250,9 @@ final class App: NSObject, NSApplicationDelegate {
                 let pupils = colors.map { (Self.color($0.sessionHex), Self.color($0.weeklyHex)) }
                 return CharacterIcon.owl(leftEye: fraction, rightEye: weekly, closure: closure, pupils: pupils)
             }
-            // Both pupils carry the week here, so a pair gives both its weekly colour.
-            let pupils = colors.map { (Self.color($0.weeklyHex), Self.color($0.weeklyHex)) }
+            // Both pupils carry the week here, so a pair gives both its weekly
+            // colour — except the user's own colours, picked one per eye.
+            let pupils = colors.map { (Self.color($0.isCustom ? $0.sessionHex : $0.weeklyHex), Self.color($0.weeklyHex)) }
             let lids = fraction + (1 - fraction) * closure
             return CharacterIcon.owl(session: lids, weekly: weekly, pupils: pupils)
         }
@@ -295,7 +301,10 @@ final class App: NSObject, NSApplicationDelegate {
         for (index, limit) in snapshot.limits.limits.enumerated() {
             let item = NSMenuItem()
             let color = colors.map { pair in
-                Self.menuColor(light: index == 0 ? pair.sessionHex : pair.weeklyHex,
+                // A preset's deep shade already reads on a light menu; a
+                // colour of the user's own is darkened there if it has to be.
+                Self.menuColor(light: ColorContrast.readable(index == 0 ? pair.sessionHex : pair.weeklyHex,
+                                                             on: ColorContrast.lightMenuHex),
                                dark: index == 0 ? pair.sessionOnDarkHex : pair.weeklyOnDarkHex)
             } ?? MeterColor.healthAdaptive(CGFloat(limit.fraction))
             item.view = LimitBarView(limit: limit, color: color)

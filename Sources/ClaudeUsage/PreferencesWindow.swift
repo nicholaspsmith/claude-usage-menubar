@@ -12,11 +12,13 @@ import SwiftUI
 /// Claude Usage's Preferences window (menu ▸ Preferences…, ⌘,), on
 /// StatusItemKit's shared `PreferencesPane`. It replaced the Settings, Icon
 /// and Color submenus: Start at Login and Show Sessions, the icon's shape and
-/// One Eye per Window, the colour pair, and the app's own sign-in.
+/// One Eye per Window, the colour pair or the user's own eye colours, and the
+/// app's own sign-in.
 ///
 /// Every choice writes the defaults key the menus wrote (`MeterStyle`,
 /// `WindowColors`, `ShowSessions`, `OwlEyePerWindow`), so nothing set before
-/// is lost.
+/// is lost. The custom eye colours are new with this window
+/// (`CustomLeftEyeColor`, `CustomRightEyeColor`, `CustomEyeColorsSame`).
 final class PreferencesModel: ObservableObject {
     /// The tile id of the usage ramp, which has no `ColorPair`.
     static let usageRampID = "usage"
@@ -27,9 +29,24 @@ final class PreferencesModel: ObservableObject {
     @Published var colorID: String {
         didSet {
             guard colorID != oldValue else { return }
-            ColorPair.save(ColorPair.presets.first(where: { $0.id == colorID }))
+            if colorID == ColorPair.customID {
+                UserDefaults.standard.set(ColorPair.customID, forKey: ColorPair.key)
+            } else {
+                ColorPair.save(ColorPair.presets.first(where: { $0.id == colorID }))
+            }
             onChange()
         }
+    }
+    /// The user's own eye colours, as the system colour picker edits them.
+    @Published var customLeft: Color {
+        didSet { saveCustom(customLeft, was: oldValue, left: true) }
+    }
+    @Published var customRight: Color {
+        didSet { saveCustom(customRight, was: oldValue, left: false) }
+    }
+    /// Both eyes take the left eye's colour.
+    @Published var customSame = ColorPair.customSame() {
+        didSet { if customSame != oldValue { ColorPair.setCustomSame(customSame); onChange() } }
     }
     @Published var showSessions = MenuPreferences.showSessions() {
         didSet { if showSessions != oldValue { MenuPreferences.setShowSessions(showSessions) } }
@@ -67,6 +84,22 @@ final class PreferencesModel: ObservableObject {
         self.onChange = onChange
         style = appearance.style
         colorID = ColorPair.stored()?.id ?? Self.usageRampID
+        let picked = ColorPair.customColors()
+        customLeft = Color(nsColor: ColorSwatch.color(picked.left))
+        customRight = Color(nsColor: ColorSwatch.color(picked.right))
+    }
+
+    /// Stores a picked colour as `#RRGGBB`. The picker reports every step of
+    /// a drag, so the icon follows the cursor round the colour wheel.
+    private func saveCustom(_ color: Color, was old: Color, left: Bool) {
+        guard color != old, let hex = Self.hex(color) else { return }
+        guard hex != (left ? ColorPair.customColors().left : ColorPair.customColors().right) else { return }
+        ColorPair.setCustomColor(hex, left: left)
+        onChange()
+    }
+
+    private static func hex(_ color: Color) -> String? {
+        NSColor(color).usingColorSpace(.sRGB).map(MeterColor.hex(from:))
     }
 
     /// Re-reads everything something else may have changed: the account
@@ -74,13 +107,21 @@ final class PreferencesModel: ObservableObject {
     func refresh() {
         style = appearance.style
         colorID = ColorPair.stored()?.id ?? Self.usageRampID
+        let picked = ColorPair.customColors()
+        if Self.hex(customLeft) != picked.left { customLeft = Color(nsColor: ColorSwatch.color(picked.left)) }
+        if Self.hex(customRight) != picked.right { customRight = Color(nsColor: ColorSwatch.color(picked.right)) }
+        customSame = ColorPair.customSame()
         showSessions = MenuPreferences.showSessions()
         eyePerWindow = MenuPreferences.eyePerWindow()
         ownLogin = OwnLogin.exists
         signingIn = isSigningIn()
     }
 
-    var selectedPair: ColorPair? { ColorPair.presets.first(where: { $0.id == colorID }) }
+    var isCustom: Bool { colorID == ColorPair.customID }
+
+    var selectedPair: ColorPair? {
+        isCustom ? ColorPair.custom() : ColorPair.presets.first(where: { $0.id == colorID })
+    }
 
     func title(_ style: MeterStyle) -> String { style == .character ? "Owl" : style.title }
 }
@@ -108,10 +149,21 @@ struct PreferencesView: View {
             }
             Section {
                 IconTilePicker(colorChoices, selection: $model.colorID).tileRow()
+                if model.isCustom {
+                    Toggle("Same Color for Both Eyes", isOn: $model.customSame)
+                        .toggleStyle(.checkbox)
+                    ColorPicker(model.customSame ? "Eye Color" : "Left Eye", selection: $model.customLeft,
+                                supportsOpacity: false)
+                    if !model.customSame {
+                        ColorPicker("Right Eye", selection: $model.customRight, supportsOpacity: false)
+                    }
+                }
             } header: {
                 Text("Color")
             } footer: {
-                PreferencesNote("Usage runs green to red with each window's use. A pair gives the session bar its first colour and the weekly bar its second, and so the owl's pupils.")
+                PreferencesNote(model.isCustom
+                    ? "Your own colours for the owl's pupils. The left eye's colour is also the session bar's and the right eye's the weekly bar's, lightened or darkened in the menu when that is needed to read them."
+                    : "Usage runs green to red with each window's use. A pair gives the session bar its first colour and the weekly bar its second, and so the owl's pupils. Custom lets you pick the eye colours yourself.")
             }
             Section {
                 if model.signingIn {
@@ -141,6 +193,9 @@ struct PreferencesView: View {
                 .init(id: pair.id, title: pair.name,
                       image: ColorSwatch.image([ColorSwatch.color(pair.sessionHex), ColorSwatch.color(pair.weeklyHex)]))
             }
+            + [.init(id: ColorPair.customID, title: "Custom",
+                     image: ColorSwatch.image([model.customLeft, model.customSame ? model.customLeft : model.customRight]
+                        .map { NSColor($0) }))]
     }
 }
 

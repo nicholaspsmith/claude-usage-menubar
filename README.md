@@ -6,7 +6,7 @@
 
 <p align="center"><img src="docs/animation.png" alt="Archimedes the owl blinking"></p>
 
-**Version 1.21.1** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
+**Version 1.21.2** · [Changelog](https://github.com/nicholaspsmith/claude-usage-menubar/releases)
 
 ![The Claude Usage menu](screenshots/menu.png)
 

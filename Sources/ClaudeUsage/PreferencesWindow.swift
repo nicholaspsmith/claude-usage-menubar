@@ -136,27 +136,39 @@ struct PreferencesView: View {
                 Toggle("Show Sessions", isOn: $model.showSessions)
             }
             Section {
-                IconTilePicker(model.styles.map { style in
-                    .init(id: style, title: model.title(style), image: model.preview(style, model.selectedPair))
-                }, selection: $model.style, columnWidth: IconTilePicker<MeterStyle>.columnWidth(for: model.styles.count))
-                .tileRow()
-                Toggle("One Eye per Window", isOn: $model.eyePerWindow)
-                    .disabled(model.style != .character)
+                // The tiles and the rows under them are one form row: as rows
+                // of their own, the grouped form measures the tile row short
+                // (tight in the Icon section, its tops clipped under Color).
+                VStack(spacing: 0) {
+                    IconTilePicker(model.styles.map { style in
+                        .init(id: style, title: model.title(style), image: model.preview(style, model.selectedPair))
+                    }, selection: $model.style, columnWidth: IconTilePicker<MeterStyle>.columnWidth(for: model.styles.count))
+                    .tileRow()
+                    RowDivider()
+                    Toggle("One Eye per Window", isOn: $model.eyePerWindow)
+                        .disabled(model.style != .character)
+                }
             } header: {
                 Text("Icon")
             } footer: {
                 PreferencesNote("The meters show the 5-hour session. The owl shows both windows: his lids follow the session and his eyes the week, or, with One Eye per Window, the left eye is the session and the right the week.")
             }
             Section {
-                IconTilePicker(colorChoices, selection: $model.colorID,
-                               columnWidth: IconTilePicker<String>.columnWidth(for: colorChoices.count)).tileRow()
-                if model.isCustom {
-                    Toggle("Same Color for Both Eyes", isOn: $model.customSame)
-                        .toggleStyle(.checkbox)
-                    ColorPicker(model.customSame ? "Eye Color" : "Left Eye", selection: $model.customLeft,
-                                supportsOpacity: false)
-                    if !model.customSame {
-                        ColorPicker("Right Eye", selection: $model.customRight, supportsOpacity: false)
+                VStack(spacing: 0) {
+                    IconTilePicker(colorChoices, selection: $model.colorID,
+                                   columnWidth: IconTilePicker<String>.columnWidth(for: colorChoices.count)).tileRow()
+                    if model.isCustom {
+                        RowDivider()
+                        Toggle("Same Color for Both Eyes", isOn: $model.customSame)
+                            .toggleStyle(.checkbox)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        RowDivider()
+                        ColorPicker(model.customSame ? "Eye Color" : "Left Eye", selection: $model.customLeft,
+                                    supportsOpacity: false)
+                        if !model.customSame {
+                            RowDivider()
+                            ColorPicker("Right Eye", selection: $model.customRight, supportsOpacity: false)
+                        }
                     }
                 }
             } header: {
@@ -198,6 +210,12 @@ struct PreferencesView: View {
                      image: ColorSwatch.image([model.customLeft, model.customSame ? model.customLeft : model.customRight]
                         .map { NSColor($0) }))]
     }
+}
+
+/// The hairline between rows stacked inside one form row, spaced as the
+/// grouped form spaces its own.
+private struct RowDivider: View {
+    var body: some View { Divider().padding(.top, 9).padding(.bottom, 8) }
 }
 
 private extension View {

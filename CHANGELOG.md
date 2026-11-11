@@ -8,6 +8,11 @@ without one is refused (`[no release]` in the tip commit is the only exception).
 Versions follow [Semantic Versioning](https://semver.org/). The full rule:
 [StatusItemKit — Releases](https://github.com/nicholaspsmith/StatusItemKit#releases-every-push-is-one).
 
+## [1.21.2] - 2026-11-10
+
+- Preferences: the Icon tiles have the same room above and below as the Color tiles, and the Color tiles are no longer clipped at the top when Custom is chosen.
+- The app icon and the README's pictures show the owl's new pupil colours.
+
 ## [1.21.1] - 2026-11-10
 
 - Removed the Rose & Cobalt colour pair. If you had it chosen, the owl is back on the Usage colours; Custom can recreate it.
